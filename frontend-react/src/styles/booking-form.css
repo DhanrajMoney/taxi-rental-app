@@ -1,0 +1,581 @@
+/* ==========================================================================
+   Booking Form Modal Styles (booking-form.css)
+   ========================================================================== */
+
+.bk-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 16px;
+  animation: bkModalFadeIn 0.22s ease-out;
+  overflow-y: auto;
+}
+
+@keyframes bkModalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes bkModalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bkSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bk-spin {
+  animation: bkSpin 0.75s linear infinite;
+}
+
+.bk-modal-card {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.22), 0 4px 12px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e2e8f0;
+  animation: bkModalSlideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+/* ── Modal Header ── */
+.bk-modal-header {
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1.5px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.bk-modal-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.bk-modal-title {
+  margin: 0;
+  font-size: 1.22rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: -0.01em;
+}
+
+.bk-modal-subtitle {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.bk-modal-close-btn {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  cursor: pointer;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.bk-modal-close-btn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+  transform: rotate(90deg);
+}
+
+/* ── Error Banner ── */
+.bk-modal-error {
+  margin: 16px 24px 0;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  border-radius: 10px;
+  color: #991b1b;
+  font-size: 0.86rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Modal Body ── */
+.bk-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.bk-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+.bk-modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+/* ── Form Section / Card ── */
+.bk-form-section {
+  border: 1.5px solid #e8edf2;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.18s ease;
+}
+
+.bk-form-section:focus-within {
+  border-color: #94a3b8;
+}
+
+.bk-section-legend {
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.bk-section-legend-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bk-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.bk-form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.bk-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.bk-field-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.bk-field-label {
+  font-size: 0.81rem;
+  font-weight: 700;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.bk-req {
+  color: #dc2626;
+  font-weight: 800;
+}
+
+.bk-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.bk-input-icon {
+  position: absolute;
+  left: 11px;
+  font-size: 0.95rem;
+  color: #94a3b8;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.bk-input,
+.bk-select,
+.bk-textarea {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 0.88rem;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 9px;
+  transition: all 0.16s ease;
+  box-sizing: border-box;
+}
+
+.bk-input.has-icon,
+.bk-select.has-icon {
+  padding-left: 36px;
+}
+
+.bk-input:focus,
+.bk-select:focus,
+.bk-textarea:focus {
+  outline: none;
+  border-color: #153d4a;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(21, 61, 74, 0.12);
+}
+
+.bk-input::placeholder,
+.bk-textarea::placeholder {
+  color: #94a3b8;
+  font-size: 0.84rem;
+}
+
+.bk-textarea {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.45;
+}
+
+/* ── Date Quick Range Chips ── */
+.bk-date-presets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.bk-date-preset-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.bk-date-chip {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.bk-date-chip:hover {
+  background: #e2eff3;
+  border-color: #cce3ea;
+  color: #153d4a;
+}
+
+/* ── Live Journey Preview Bar ── */
+.bk-journey-preview-strip {
+  background: linear-gradient(135deg, #f0f7f9 0%, #e8f4f7 100%);
+  border: 1px solid #cce3ea;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bk-journey-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #153d4a;
+  max-width: 42%;
+  min-width: 0;
+}
+
+.bk-journey-node span.loc {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bk-journey-path {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+}
+
+.bk-journey-line {
+  flex: 1;
+  height: 2px;
+  background: repeating-linear-gradient(to right, #94a3b8 0, #94a3b8 4px, transparent 4px, transparent 8px);
+}
+
+.bk-journey-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #0e2d38;
+  background: #ffffff;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid #cce3ea;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Assigned Taxi & Driver Preview Cards ── */
+.bk-assigned-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
+.bk-assigned-plate {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--bk-font-mono, monospace);
+  font-weight: 800;
+  background: #fef08a;
+  color: #854d0e;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #fde047;
+}
+
+.bk-assigned-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bk-assigned-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #475569;
+  background: #ffffff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+/* ── Live Dynamic Fare Estimation Card ── */
+.bk-fare-card {
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1.5px solid #a7f3d0;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.06);
+}
+
+.bk-fare-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bk-fare-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #065f46;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bk-fare-formula {
+  font-size: 0.82rem;
+  color: #047857;
+  font-weight: 600;
+}
+
+.bk-fare-amount {
+  font-size: 1.85rem;
+  font-weight: 900;
+  color: #064e3b;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.bk-fare-empty {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  font-size: 0.82rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Modal Footer ── */
+.bk-modal-footer {
+  padding: 16px 24px;
+  background: #f8fafc;
+  border-top: 1.5px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.bk-modal-btn-cancel {
+  padding: 9px 18px;
+  border-radius: 9px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bk-modal-btn-cancel:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #94a3b8;
+}
+
+.bk-modal-btn-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 22px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #153d4a 0%, #0e2d38 100%);
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  box-shadow: 0 2px 8px rgba(21, 61, 74, 0.25);
+}
+
+.bk-modal-btn-submit:hover:not(:disabled) {
+  opacity: 0.94;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(21, 61, 74, 0.32);
+}
+
+.bk-modal-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Responsive Mobile Layout ── */
+@media (max-width: 640px) {
+  .bk-modal-card {
+    max-height: 96vh;
+    border-radius: 12px;
+  }
+
+  .bk-modal-header {
+    padding: 14px 18px;
+  }
+
+  .bk-modal-body {
+    padding: 16px 18px;
+    gap: 16px;
+  }
+
+  .bk-form-grid-2,
+  .bk-form-grid-3 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .bk-journey-preview-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .bk-journey-node {
+    max-width: 100%;
+  }
+
+  .bk-journey-path {
+    width: 100%;
+  }
+
+  .bk-fare-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .bk-modal-footer {
+    padding: 12px 18px;
+  }
+
+  .bk-modal-btn-cancel,
+  .bk-modal-btn-submit {
+    flex: 1;
+    justify-content: center;
+  }
+}

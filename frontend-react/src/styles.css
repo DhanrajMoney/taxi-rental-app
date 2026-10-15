@@ -1,0 +1,9 @@
+/* ==========================================================================
+   RideDesk Global Application Stylesheet
+   Global foundation & shell styles loaded on initial entry.
+   Individual page styles are code-split & lazy-loaded on route navigation.
+   ========================================================================== */
+
+@import "./styles/base.css";
+@import "./styles/dashboard.css";
+@import "./styles/forms.css";
