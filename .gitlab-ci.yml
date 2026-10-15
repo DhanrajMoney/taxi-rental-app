@@ -1,0 +1,63 @@
+# RideDesk GitLab CI/CD Pipeline
+stages:
+  - test
+  - build
+  - gate
+
+variables:
+  GIT_DEPTH: "1"
+
+# ══════════════════════════════════════════════════════════
+# 1. Backend Automation Test Suite (Laravel 11 & PHP 8.3)
+# ══════════════════════════════════════════════════════════
+backend_test:
+  stage: test
+  image: php:8.3-cli
+  before_script:
+    - apt-get update -yqq
+    - apt-get install -yqq git unzip libsqlite3-dev libzip-dev
+    - docker-php-ext-install pdo_sqlite zip
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  script:
+    - cd backend-laravel
+    - composer install --no-interaction --prefer-dist --optimize-autoloader
+    - cp .env.example .env
+    - php artisan key:generate
+    - php artisan test --colors=always
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-backend
+    paths:
+      - backend-laravel/vendor/
+
+# ══════════════════════════════════════════════════════════
+# 2. Frontend Automation Build & Bundler Suite (React & Vite)
+# ══════════════════════════════════════════════════════════
+frontend_build:
+  stage: build
+  image: node:20-alpine
+  script:
+    - cd frontend-react
+    - npm install
+    - npm run build
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-frontend
+    paths:
+      - frontend-react/node_modules/
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - frontend-react/dist/
+
+# ══════════════════════════════════════════════════════════
+# 3. Production Deployment Gatekeeper
+# ══════════════════════════════════════════════════════════
+deployment_gate:
+  stage: gate
+  image: alpine:latest
+  only:
+    - main
+    - master
+  script:
+    - echo "All automated test cases and production builds passed."
+    - echo "Pipeline ready for deployment."
+

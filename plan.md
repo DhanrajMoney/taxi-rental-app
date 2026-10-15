@@ -164,8 +164,9 @@ Build a complete taxi rental operations dashboard for admins, staff, and drivers
 - Created `installation/DATABASE_SETUP.md` for MySQL / MariaDB utf8mb4 collation and migrations.
 - Provided production config templates: `env.production.example`, `nginx.conf.example`, and `apache.htaccess.example`.
 - Automated release build pipelines: `package-release.ps1` (Windows) and `package-release.sh` (Linux/macOS) to verify test suites, compile production Vite bundles, publish to Laravel web root, and package clean release archives.
+- Automated CI/CD Pipelines: Created `.github/workflows/ci.yml` (GitHub Actions) and `.gitlab-ci.yml` (GitLab CI) running both backend PHPUnit tests and Vite frontend compilation on every `git push` and pull request with production deployment gatekeeping.
 
-**Done when:** The application can be installed and deployed seamlessly on shared hosting or VPS environments.
+**Done when:** The application can be installed, tested automatically on every push via CI/CD, and deployed seamlessly on shared hosting or VPS environments.
 
 ## Phase 13: Sidebar Navigation Reordering & Visual Alignment
 **Priority:** Medium
