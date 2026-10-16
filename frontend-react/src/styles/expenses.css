@@ -323,7 +323,8 @@
   margin-top: 0.2rem;
 }
 
-.exp-receipt-link {
+.exp-receipt-link,
+.exp-receipt-link-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -331,10 +332,75 @@
   font-weight: 600;
   color: #0369a1;
   text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.exp-receipt-link:hover {
+.exp-receipt-link:hover,
+.exp-receipt-link-btn:hover {
   text-decoration: underline;
+  color: #0284c7;
+}
+
+.exp-receipt-link-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.exp-tab-banner {
+  padding: 0.55rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.exp-tab-banner.success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.exp-tab-banner.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.exp-tab-banner-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.exp-file-clear-btn {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.45rem;
+  cursor: pointer;
+  margin-left: 0.5rem;
+  transition: background 0.15s;
+}
+
+.exp-file-clear-btn:hover {
+  background: #fecaca;
 }
 
 .exp-actions-group {

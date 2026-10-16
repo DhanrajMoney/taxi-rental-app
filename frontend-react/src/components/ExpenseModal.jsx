@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ExpenseAPI } from "../api/client.js";
 import "../styles/expenses.css";
 
@@ -31,6 +31,20 @@ export default function ExpenseModal({ isOpen, onClose, booking, expense, onSave
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const fileInputRef = useRef(null);
+
+  // Close modal when pressing Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleKeyDown(e) {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     if (expense) {
       setCategory(expense.category || "fuel");
@@ -51,10 +65,20 @@ export default function ExpenseModal({ isOpen, onClose, booking, expense, onSave
       setStatus(canManage ? "approved" : "pending_approval");
       setReceiptFile(null);
     }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     setError("");
   }, [expense, isOpen, canManage]);
 
   if (!isOpen || !booking) return null;
+
+  function handleClearReceipt() {
+    setReceiptFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -241,6 +265,7 @@ export default function ExpenseModal({ isOpen, onClose, booking, expense, onSave
               <input
                 type="file"
                 id="exp-receipt-input"
+                ref={fileInputRef}
                 accept=".pdf,.jpg,.jpeg,.png"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -261,6 +286,14 @@ export default function ExpenseModal({ isOpen, onClose, booking, expense, onSave
               {receiptFile && (
                 <span className="exp-file-selected">
                   Selected: {receiptFile.name} ({(receiptFile.size / 1024).toFixed(0)} KB)
+                  <button
+                    type="button"
+                    className="exp-file-clear-btn"
+                    onClick={handleClearReceipt}
+                    title="Remove selected file"
+                  >
+                    ✕ Remove
+                  </button>
                 </span>
               )}
             </div>
@@ -295,4 +328,3 @@ export default function ExpenseModal({ isOpen, onClose, booking, expense, onSave
     </div>
   );
 }
-

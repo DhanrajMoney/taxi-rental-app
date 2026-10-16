@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ExpenseAPI } from "../api/client.js";
 import { formatCurrency, formatDate } from "../utils/format.js";
 import ExpenseModal from "./ExpenseModal.jsx";
@@ -14,39 +14,60 @@ const CATEGORY_ICONS = {
 };
 
 export default function BookingExpensesTab({ booking, canManage, onBookingUpdated }) {
-  const [expenses, setExpenses] = useState([]);
-  const [pnl, setPnl] = useState({
-    base_fare: 0,
-    billable_expenses: 0,
-    customer_grand_total: 0,
-    total_expenses: 0,
-    net_profit: 0,
-    profit_margin_pct: 0,
-    reimbursable_pending: 0,
-    reimbursed_total: 0,
+  // Pre-seed from booking props to eliminate layout shift on initial render
+  const [expenses, setExpenses] = useState(() => booking?.expenses || []);
+  const [pnl, setPnl] = useState(() => {
+    const baseFare = Number(booking?.final_fare ?? booking?.estimated_fare ?? 0);
+    const billable = Number(booking?.billable_expenses ?? 0);
+    const totalExp = Number(booking?.total_expenses ?? 0);
+    const grand = baseFare + billable;
+    const netProfit = Number(booking?.net_profit ?? (grand - totalExp));
+    const margin = booking?.profit_margin_pct ?? (grand > 0 ? Number(((netProfit / grand) * 100).toFixed(1)) : 0);
+    return {
+      base_fare: baseFare,
+      billable_expenses: billable,
+      customer_grand_total: grand,
+      total_expenses: totalExp,
+      net_profit: netProfit,
+      profit_margin_pct: margin,
+      reimbursable_pending: 0,
+      reimbursed_total: 0,
+    };
   });
-  const [loading, setLoading] = useState(true);
+
+  const [loading, setLoading] = useState(() => !(booking?.expenses && booking.expenses.length > 0));
   const [filter, setFilter] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
+  const [banner, setBanner] = useState(null); // { type: 'success' | 'error', message: string }
+  const [confirmState, setConfirmState] = useState(null); // { title, message, onConfirm, actionLabel, danger }
 
-  const loadExpenses = useCallback(async () => {
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const loadExpenses = useCallback(async (showSpinner = false) => {
     if (!booking?.id) return;
     try {
-      setLoading(true);
+      if (showSpinner) setLoading(true);
       const res = await ExpenseAPI.listForBooking(booking.id);
+      if (!isMountedRef.current) return;
       setExpenses(res?.expenses || []);
       if (res?.pnl) {
         setPnl(res.pnl);
       }
     } catch (err) {
-      // Fallback if booking already had expenses populated
-      if (booking.expenses) {
+      if (isMountedRef.current && booking.expenses) {
         setExpenses(booking.expenses);
       }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   }, [booking?.id, booking?.expenses]);
 
@@ -54,69 +75,112 @@ export default function BookingExpensesTab({ booking, canManage, onBookingUpdate
     loadExpenses();
   }, [loadExpenses]);
 
-  async function handleApprove(expenseId) {
+  // Memoize filtered expenses for instant tab switching without re-allocating
+  const filteredExpenses = useMemo(() => {
+    if (filter === "all") return expenses;
+    return expenses.filter((e) => e.status === filter);
+  }, [expenses, filter]);
+
+  // Authenticated receipt download using Axios blob response
+  const handleDownloadReceipt = useCallback(async (exp) => {
+    try {
+      setDownloadingId(exp.id);
+      const blob = await ExpenseAPI.downloadReceipt(exp.id);
+      const blobUrl = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = exp.receipt_original_name || `expense-${exp.id}-receipt.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      setBanner({
+        type: "error",
+        message: err?.response?.data?.message || "Failed to download receipt slip.",
+      });
+    } finally {
+      setDownloadingId(null);
+    }
+  }, []);
+
+  const handleApprove = useCallback(async (expenseId) => {
     try {
       setActionLoading(true);
       await ExpenseAPI.approve(expenseId);
+      setBanner({ type: "success", message: "Expense approved successfully." });
       await loadExpenses();
       if (onBookingUpdated) onBookingUpdated();
     } catch (err) {
-      alert(err?.response?.data?.message || "Failed to approve expense.");
+      setBanner({ type: "error", message: err?.response?.data?.message || "Failed to approve expense." });
     } finally {
-      setActionLoading(false);
+      if (isMountedRef.current) setActionLoading(false);
     }
-  }
+  }, [loadExpenses, onBookingUpdated]);
 
-  async function handleReimburse(expenseId) {
+  const handleReimburse = useCallback(async (expenseId) => {
     try {
       setActionLoading(true);
       await ExpenseAPI.reimburse(expenseId);
+      setBanner({ type: "success", message: "Expense marked as reimbursed." });
       await loadExpenses();
       if (onBookingUpdated) onBookingUpdated();
     } catch (err) {
-      alert(err?.response?.data?.message || "Failed to mark as reimbursed.");
+      setBanner({ type: "error", message: err?.response?.data?.message || "Failed to mark as reimbursed." });
     } finally {
-      setActionLoading(false);
+      if (isMountedRef.current) setActionLoading(false);
     }
-  }
+  }, [loadExpenses, onBookingUpdated]);
 
-  async function handleReject(expenseId) {
-    if (!window.confirm("Are you sure you want to reject this expense claim?")) return;
+  const executeReject = useCallback(async (expenseId) => {
     try {
       setActionLoading(true);
       await ExpenseAPI.reject(expenseId);
+      setBanner({ type: "success", message: "Expense claim rejected." });
       await loadExpenses();
       if (onBookingUpdated) onBookingUpdated();
     } catch (err) {
-      alert(err?.response?.data?.message || "Failed to reject expense.");
+      setBanner({ type: "error", message: err?.response?.data?.message || "Failed to reject expense." });
     } finally {
-      setActionLoading(false);
+      if (isMountedRef.current) setActionLoading(false);
+      setConfirmState(null);
     }
-  }
+  }, [loadExpenses, onBookingUpdated]);
 
-  async function handleDelete(expenseId) {
-    if (!window.confirm("Are you sure you want to delete this expense record?")) return;
+  const executeDelete = useCallback(async (expenseId) => {
     try {
       setActionLoading(true);
       await ExpenseAPI.remove(expenseId);
+      setBanner({ type: "success", message: "Expense deleted successfully." });
       await loadExpenses();
       if (onBookingUpdated) onBookingUpdated();
     } catch (err) {
-      alert(err?.response?.data?.message || "Failed to delete expense.");
+      setBanner({ type: "error", message: err?.response?.data?.message || "Failed to delete expense." });
     } finally {
-      setActionLoading(false);
+      if (isMountedRef.current) setActionLoading(false);
+      setConfirmState(null);
     }
-  }
-
-  const filteredExpenses = expenses.filter((e) => {
-    if (filter === "all") return true;
-    return e.status === filter;
-  });
+  }, [loadExpenses, onBookingUpdated]);
 
   const isPositiveMargin = pnl.net_profit >= 0;
 
   return (
     <div className="bk-tab-pane">
+      {/* Optional feedback banner */}
+      {banner && (
+        <div className={`exp-tab-banner ${banner.type}`}>
+          <span>{banner.message}</span>
+          <button
+            type="button"
+            className="exp-tab-banner-close"
+            onClick={() => setBanner(null)}
+            aria-label="Dismiss banner"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* 1. Trip Real-Time P&L Hero Summary Card */}
       <div className="exp-pnl-card">
         <div className="exp-pnl-header">
@@ -256,14 +320,15 @@ export default function BookingExpensesTab({ booking, canManage, onBookingUpdate
 
                 <div className="exp-card-footer">
                   {exp.receipt_path ? (
-                    <a
-                      href={ExpenseAPI.getReceiptUrl(exp.id)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="exp-receipt-link"
+                    <button
+                      type="button"
+                      className="exp-receipt-link-btn"
+                      onClick={() => handleDownloadReceipt(exp)}
+                      disabled={downloadingId === exp.id}
+                      title="Download attached receipt"
                     >
-                      📎 View Receipt Slip
-                    </a>
+                      📎 {downloadingId === exp.id ? "Downloading…" : exp.receipt_original_name || "View Receipt Slip"}
+                    </button>
                   ) : (
                     <span className="exp-stat-sub">No receipt attached</span>
                   )}
@@ -295,7 +360,15 @@ export default function BookingExpensesTab({ booking, canManage, onBookingUpdate
                         type="button"
                         className="exp-btn-act reject"
                         disabled={actionLoading}
-                        onClick={() => handleReject(exp.id)}
+                        onClick={() => {
+                          setConfirmState({
+                            title: "Reject Expense Claim?",
+                            message: `Are you sure you want to reject this ${exp.category_label || exp.category} claim of ${formatCurrency(exp.amount)}?`,
+                            actionLabel: "Reject Claim",
+                            danger: true,
+                            onConfirm: () => executeReject(exp.id),
+                          });
+                        }}
                       >
                         Reject
                       </button>
@@ -321,7 +394,15 @@ export default function BookingExpensesTab({ booking, canManage, onBookingUpdate
                         type="button"
                         className="exp-btn-act delete"
                         disabled={actionLoading}
-                        onClick={() => handleDelete(exp.id)}
+                        onClick={() => {
+                          setConfirmState({
+                            title: "Delete Expense Record?",
+                            message: `Are you sure you want to permanently delete this ${exp.category_label || exp.category} expense of ${formatCurrency(exp.amount)}?`,
+                            actionLabel: "Delete Expense",
+                            danger: true,
+                            onConfirm: () => executeDelete(exp.id),
+                          });
+                        }}
                         title="Delete expense"
                       >
                         🗑️
@@ -332,6 +413,47 @@ export default function BookingExpensesTab({ booking, canManage, onBookingUpdate
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Confirmation Dialog Modal */}
+      {confirmState && (
+        <div className="exp-modal-backdrop" onClick={() => setConfirmState(null)} role="dialog" aria-modal="true">
+          <div className="exp-modal-shell" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="exp-modal-header">
+              <h3 className="exp-modal-title">{confirmState.title}</h3>
+              <button
+                type="button"
+                className="exp-modal-close"
+                onClick={() => setConfirmState(null)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: "1.2rem", fontSize: "0.9rem", color: "#334155" }}>
+              <p>{confirmState.message}</p>
+            </div>
+            <div className="exp-modal-actions" style={{ padding: "0 1.2rem 1.2rem" }}>
+              <button
+                type="button"
+                className="exp-btn-secondary"
+                onClick={() => setConfirmState(null)}
+                disabled={actionLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="exp-btn-primary"
+                style={confirmState.danger ? { background: "#dc2626" } : undefined}
+                onClick={confirmState.onConfirm}
+                disabled={actionLoading}
+              >
+                {actionLoading ? "Processing…" : confirmState.actionLabel}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -346,6 +468,10 @@ export default function BookingExpensesTab({ booking, canManage, onBookingUpdate
         expense={editingExpense}
         canManage={canManage}
         onSaved={async () => {
+          setBanner({
+            type: "success",
+            message: editingExpense ? "Expense updated successfully." : "Expense recorded successfully.",
+          });
           await loadExpenses();
           if (onBookingUpdated) onBookingUpdated();
         }}
@@ -353,4 +479,3 @@ export default function BookingExpensesTab({ booking, canManage, onBookingUpdate
     </div>
   );
 }
-

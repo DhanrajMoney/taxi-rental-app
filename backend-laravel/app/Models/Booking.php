@@ -81,42 +81,69 @@ class Booking extends Model
         return $this->hasMany(BookingExpense::class);
     }
 
-    public function getTotalExpensesAttribute(): float
+    protected ?array $expenseSummaryCache = null;
+
+    public function clearExpenseSummaryCache(): void
     {
+        $this->expenseSummaryCache = null;
+    }
+
+    public function getExpenseSummary(): array
+    {
+        $fareKey = (string) ($this->final_fare ?? $this->estimated_fare ?? '0');
+        if ($this->expenseSummaryCache !== null && ($this->expenseSummaryCache['_fareKey'] ?? null) === $fareKey) {
+            return $this->expenseSummaryCache;
+        }
+
         $expenses = $this->relationLoaded('expenses')
             ? $this->expenses
             : $this->expenses()->get();
 
-        return (float) round($expenses->where('status', '!=', 'rejected')->sum('amount'), 2);
+        $total = 0.0;
+        $billable = 0.0;
+        foreach ($expenses as $exp) {
+            if ($exp->status !== 'rejected') {
+                $amt = (float) $exp->amount;
+                $total += $amt;
+                if ($exp->is_billable) {
+                    $billable += $amt;
+                }
+            }
+        }
+
+        $total = round($total, 2);
+        $billable = round($billable, 2);
+        $baseFare = (float) ($this->final_fare ?? $this->estimated_fare ?? 0);
+        $netProfit = round(($baseFare + $billable) - $total, 2);
+        $customerTotal = $baseFare + $billable;
+        $marginPct = $customerTotal > 0 ? round(($netProfit / $customerTotal) * 100, 1) : 0.0;
+
+        return $this->expenseSummaryCache = [
+            '_fareKey' => $fareKey,
+            'total_expenses' => (float) $total,
+            'billable_expenses' => (float) $billable,
+            'net_profit' => (float) $netProfit,
+            'profit_margin_pct' => (float) $marginPct,
+        ];
+    }
+
+    public function getTotalExpensesAttribute(): float
+    {
+        return $this->getExpenseSummary()['total_expenses'];
     }
 
     public function getBillableExpensesAttribute(): float
     {
-        $expenses = $this->relationLoaded('expenses')
-            ? $this->expenses
-            : $this->expenses()->get();
-
-        return (float) round($expenses->where('status', '!=', 'rejected')->where('is_billable', true)->sum('amount'), 2);
+        return $this->getExpenseSummary()['billable_expenses'];
     }
 
     public function getNetProfitAttribute(): float
     {
-        $baseFare = (float) ($this->final_fare ?? $this->estimated_fare ?? 0);
-        $billable = $this->billable_expenses;
-        $totalExp = $this->total_expenses;
-
-        return (float) round(($baseFare + $billable) - $totalExp, 2);
+        return $this->getExpenseSummary()['net_profit'];
     }
 
     public function getProfitMarginPctAttribute(): float
     {
-        $baseFare = (float) ($this->final_fare ?? $this->estimated_fare ?? 0);
-        $customerTotal = $baseFare + $this->billable_expenses;
-
-        if ($customerTotal <= 0) {
-            return 0.0;
-        }
-
-        return (float) round(($this->net_profit / $customerTotal) * 100, 1);
+        return $this->getExpenseSummary()['profit_margin_pct'];
     }
 }

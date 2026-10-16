@@ -62,23 +62,27 @@ class BookingExpenseController extends Controller
             });
         }
 
-        $expenses = $query->latest('expense_date')->get();
+        // Database-level financial aggregation using a single query
+        $summaryRow = (clone $query)->selectRaw("
+            COALESCE(SUM(CASE WHEN status != 'rejected' THEN amount ELSE 0 END), 0) as total_amount,
+            COALESCE(SUM(CASE WHEN status != 'rejected' AND is_billable = 1 THEN amount ELSE 0 END), 0) as billable_amount,
+            COALESCE(SUM(CASE WHEN status = 'pending_approval' AND payment_method IN ('driver_cash', 'driver_upi') THEN amount ELSE 0 END), 0) as reimbursable_pending,
+            COALESCE(SUM(CASE WHEN status = 'reimbursed' AND payment_method IN ('driver_cash', 'driver_upi') THEN amount ELSE 0 END), 0) as reimbursed_total,
+            COUNT(*) as total_count
+        ")->first();
 
-        // Financial aggregations
-        $totalAmount = (float) round($expenses->where('status', '!=', 'rejected')->sum('amount'), 2);
-        $billableAmount = (float) round($expenses->where('status', '!=', 'rejected')->where('is_billable', true)->sum('amount'), 2);
-        $reimbursablePending = (float) round(
-            $expenses->where('status', 'pending_approval')
-                ->whereIn('payment_method', ['driver_cash', 'driver_upi'])
-                ->sum('amount'),
-            2
-        );
-        $reimbursedTotal = (float) round(
-            $expenses->where('status', 'reimbursed')
-                ->whereIn('payment_method', ['driver_cash', 'driver_upi'])
-                ->sum('amount'),
-            2
-        );
+        $totalAmount = (float) round($summaryRow->total_amount ?? 0, 2);
+        $billableAmount = (float) round($summaryRow->billable_amount ?? 0, 2);
+        $reimbursablePending = (float) round($summaryRow->reimbursable_pending ?? 0, 2);
+        $reimbursedTotal = (float) round($summaryRow->reimbursed_total ?? 0, 2);
+        $count = (int) ($summaryRow->total_count ?? 0);
+
+        $perPage = $request->integer('per_page', 0);
+        if ($perPage > 0) {
+            $expenses = $query->latest('expense_date')->paginate($perPage);
+        } else {
+            $expenses = $query->latest('expense_date')->get();
+        }
 
         return response()->json([
             'expenses' => $expenses,
@@ -87,7 +91,7 @@ class BookingExpenseController extends Controller
                 'billable_amount' => $billableAmount,
                 'reimbursable_pending' => $reimbursablePending,
                 'reimbursed_total' => $reimbursedTotal,
-                'count' => $expenses->count(),
+                'count' => $count,
             ],
         ]);
     }
@@ -100,29 +104,45 @@ class BookingExpenseController extends Controller
         $this->ensureBookingVisible($booking, $request->user());
 
         $expenses = $booking->expenses()
-            ->with(['driver', 'approver', 'office'])
+            ->with([
+                'driver:id,name,phone',
+                'approver:id,name',
+                'office:id,name',
+            ])
             ->latest('expense_date')
             ->get();
 
-        $totalExpenses = (float) round($expenses->where('status', '!=', 'rejected')->sum('amount'), 2);
-        $billableExpenses = (float) round($expenses->where('status', '!=', 'rejected')->where('is_billable', true)->sum('amount'), 2);
+        $totalExpenses = 0.0;
+        $billableExpenses = 0.0;
+        $reimbursablePending = 0.0;
+        $reimbursedTotal = 0.0;
+
+        foreach ($expenses as $expense) {
+            $amt = (float) $expense->amount;
+            if ($expense->status !== 'rejected') {
+                $totalExpenses += $amt;
+                if ($expense->is_billable) {
+                    $billableExpenses += $amt;
+                }
+            }
+            if (in_array($expense->payment_method, ['driver_cash', 'driver_upi'], true)) {
+                if ($expense->status === 'pending_approval') {
+                    $reimbursablePending += $amt;
+                } elseif ($expense->status === 'reimbursed') {
+                    $reimbursedTotal += $amt;
+                }
+            }
+        }
+
+        $totalExpenses = round($totalExpenses, 2);
+        $billableExpenses = round($billableExpenses, 2);
+        $reimbursablePending = round($reimbursablePending, 2);
+        $reimbursedTotal = round($reimbursedTotal, 2);
+
         $baseFare = (float) ($booking->final_fare ?? $booking->estimated_fare ?? 0);
         $customerGrandTotal = (float) round($baseFare + $billableExpenses, 2);
         $netProfit = (float) round($customerGrandTotal - $totalExpenses, 2);
         $profitMarginPct = $customerGrandTotal > 0 ? (float) round(($netProfit / $customerGrandTotal) * 100, 1) : 0.0;
-
-        $reimbursablePending = (float) round(
-            $expenses->where('status', 'pending_approval')
-                ->whereIn('payment_method', ['driver_cash', 'driver_upi'])
-                ->sum('amount'),
-            2
-        );
-        $reimbursedTotal = (float) round(
-            $expenses->where('status', 'reimbursed')
-                ->whereIn('payment_method', ['driver_cash', 'driver_upi'])
-                ->sum('amount'),
-            2
-        );
 
         return response()->json([
             'expenses' => $expenses,
