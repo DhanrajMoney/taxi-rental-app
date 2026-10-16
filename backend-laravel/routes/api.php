@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\BookingExpenseController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DriverController;
@@ -42,6 +43,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('drivers/{driver}/documents/{document}/file', [DriverDocumentController::class, 'download']);
     Route::get('bookings', [BookingController::class, 'index']);
     Route::get('bookings/{booking}', [BookingController::class, 'show']);
+    Route::get('expenses', [BookingExpenseController::class, 'indexAll']);
+    Route::get('bookings/{booking}/expenses', [BookingExpenseController::class, 'index']);
+    Route::post('bookings/{booking}/expenses', [BookingExpenseController::class, 'store']);
+    Route::put('expenses/{expense}', [BookingExpenseController::class, 'update']);
+    Route::patch('expenses/{expense}', [BookingExpenseController::class, 'update']);
+    Route::delete('expenses/{expense}', [BookingExpenseController::class, 'destroy']);
+    Route::get('expenses/{expense}/receipt', [BookingExpenseController::class, 'downloadReceipt']);
     Route::get('offices', [OfficeController::class, 'index']);
     Route::get('offices/{office}', [OfficeController::class, 'show']);
     Route::get('customers', [CustomerController::class, 'index']);
@@ -100,6 +108,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('bookings/{booking}', [BookingController::class, 'update']);
         Route::patch('bookings/{booking}', [BookingController::class, 'update']);
         Route::delete('bookings/{booking}', [BookingController::class, 'destroy']);
+
+        Route::post('expenses/{expense}/approve', [BookingExpenseController::class, 'approve']);
+        Route::post('expenses/{expense}/reimburse', [BookingExpenseController::class, 'reimburse']);
+        Route::post('expenses/{expense}/reject', [BookingExpenseController::class, 'reject']);
 
         Route::post('customers', [CustomerController::class, 'store']);
         Route::put('customers/{customer}', [CustomerController::class, 'update']);

@@ -1,6 +1,6 @@
 # Rent A Ride Desk Feature Plan
 
-> Last reviewed: 2026-10-15
+> Last reviewed: 2026-10-16
 
 ## Goal
 Build a complete taxi rental operations dashboard for admins, staff, and drivers.
@@ -287,9 +287,70 @@ Build a complete taxi rental operations dashboard for admins, staff, and drivers
 
 **Done when:** Customers and drivers receive automated, formatted WhatsApp and Email confirmations for booking reservations, chauffeur assignments, and trip completion receipts, while admins can configure gateway credentials and monitor notification delivery logs directly from the dashboard.
 
+## Phase 18: Ride & Trip Operational Expense Management
+**Priority:** High
+
+**Status:** Implemented in the authenticated Laravel 11 API (migration `2026_10_16_000001_create_booking_expenses_table.php`, `BookingExpense` model, `BookingExpenseController`, `StoreBookingExpenseRequest`, `UpdateBookingExpenseRequest`, role scoping, and approval endpoints) and React dashboard (`BookingExpensesTab.jsx`, `ExpenseModal.jsx`, `expenses.css`, and `Bookings.jsx` drawer integration). Features comprehensive trip-level expense recording across 6 categories (Fuel, Tolls & FASTag, Parking, Driver Allowance, Border Permits, Incidentals), billable vs company-absorbed classification, driver reimbursement lifecycle (Pending Approval -> Approved -> Reimbursed / Rejected), secure receipt file uploads with strict MIME and 10MB checks, real-time Trip P&L summary hero cards calculating net profit and profit margin %, and synchronization with Executive Financial Reports.
+
+- **1. Core Expense Categories & Classification:**
+  - **Expense Types:**
+    - ⛽ **Fuel (Diesel / Petrol / CNG / EV Charging):** Fuel station, payment method, and total amount.
+    - 🛣️ **Tolls & FASTag:** Highway and expressway toll plaza deductions.
+    - 🅿️ **Parking Charges:** Airport, railway station, municipal, and hotel parking fees.
+    - 🍽️ **Driver Allowance (Bata / DA):** Daily food allowance and outstation night stay allowances.
+    - 🛂 **State Border & Interstate Permits:** Commercial passenger entry taxes and temporary interstate permits.
+    - 🧹 **Incidentals & Emergency Upkeep:** Puncture repair, vehicle wash, or minor en-route consumables.
+  - **Billing & Settlement Classification:**
+    - **Billable to Customer:** Expenses passed directly onto the passenger's final invoice.
+    - **Company Operating Expense:** Expenses absorbed by the fleet operator.
+    - **Payment Method & Payer:** Driver Cash/UPI (reimbursable), Company FASTag/Corporate Card, or Customer Direct Payment.
+
+- **2. Backend Architecture (Laravel 11):**
+  - **Database Schema (`booking_expenses` table):**
+    - `booking_id` (foreign key to `bookings`, cascade on delete).
+    - `driver_id` (foreign key to `drivers`, nullable).
+    - `office_id` (foreign key to `offices`, nullable for branch scoping).
+    - `category` (enum: `fuel`, `toll`, `parking`, `driver_allowance`, `permit`, `other`).
+    - `amount` (decimal: 10,2).
+    - `payment_method` (enum: `driver_cash`, `driver_upi`, `company_card`, `fastag`, `customer_paid`).
+    - `is_billable` (boolean: true if added to customer final billing, false if company absorbed).
+    - `status` (enum: `pending_approval`, `approved`, `reimbursed`, `rejected`).
+    - `receipt_path` (string, nullable: secure storage for photo/PDF of bill slip).
+    - `notes` (text, nullable).
+    - `expense_date` (date).
+    - `approved_by` (foreign key to `users`, nullable).
+    - `approved_at` (timestamp, nullable).
+  - **RESTful API Endpoints:**
+    - `GET /api/expenses` — List all expenses with search, office, category, and date filtering.
+    - `GET /api/bookings/{booking}/expenses` — List expenses and calculated P&L for a specific booking.
+    - `POST /api/bookings/{booking}/expenses` — Log a new ride expense with optional receipt upload.
+    - `PUT /api/expenses/{expense}` — Edit expense details.
+    - `DELETE /api/expenses/{expense}` — Remove an expense entry.
+    - `POST /api/expenses/{expense}/approve` — Admin/Staff approval of reimbursement claim.
+    - `POST /api/expenses/{expense}/reimburse` — Mark claim as reimbursed to driver.
+    - `POST /api/expenses/{expense}/reject` — Reject reimbursement claim.
+    - `GET /api/expenses/{expense}/receipt` — Secure download/preview of receipt slip.
+  - **Automated Profitability & Fare Integration:**
+    - Real-time calculations on `Booking`: Total Ride Expenses, Billable Add-ons, Net Ride Profit, and Profit Margin %.
+
+- **3. Frontend Dashboard Integration (React):**
+  - **Booking Command Center Drawer (`Bookings.jsx` & `BookingExpensesTab.jsx`):**
+    - Dedicated **"💸 Expenses"** 5th tab in the slide-in drawer.
+    - Real-time **Trip P&L Summary Hero Card**: Gross Customer Total, Total Ride Expenses, Driver Reimbursable balance, and Net Profit Margin %.
+    - **Expense Ledger List**: Category badge, amount, payment method pill, billable tag, receipt link, and approval status badge.
+    - **"Log Expense" Modal Dialog (`ExpenseModal.jsx`)**: Quick category selector, amount input, billable toggle, receipt image/PDF upload, and notes field.
+    - Role-based permissions allowing drivers to submit and manage pending claims, and dispatchers/admins to approve, reimburse, or reject.
+  - **Executive Reports & Analytics (`Reports.jsx`):**
+    - Updated Executive Financial & P&L view to combine garage maintenance with en-route operational trip expenses for true net operating profit margin.
+
+- **4. Quality Assurance & Automated Testing:**
+  - Automated PHPUnit test suite (`BookingExpenseTest.php`) verifying staff expense logging, driver pending submission, permission scoping (drivers cannot approve or touch unassigned bookings), receipt file storage, and P&L formula accuracy.
+
+**Done when:** Drivers and staff can record trip-level fuel, toll, parking, and allowance expenses with receipt slips, dispatchers can approve reimbursements, and fleet managers can view the exact real-time net profitability of every single ride.
+
 ## Technical Checklist
 
-- Current UI app version: `1.4.0`.
+- Current UI app version: `1.5.0`.
 - Whenever a feature is implemented, increment `APP_VERSION` in `frontend-react/src/App.jsx` and update this version here.
 - Add Laravel migrations, models, requests, policies, and API resources for each feature.
 - Add focused API tests for permissions and validation.
@@ -301,4 +362,4 @@ Build a complete taxi rental operations dashboard for admins, staff, and drivers
 - Keep date formatting consistent across all React tables with the shared formatter in `frontend-react/src/utils/formatDate.js`.
 - Run `php artisan test` and `npm run build` before releasing changes.
 - Database optimized: applied performance index migration (`2026_10_11_000001_optimize_performance_indexes.php`) and executed `OPTIMIZE TABLE` & `ANALYZE TABLE` across all MySQL tables.
-- Latest verification on 2026-10-15: all 54 Laravel tests pass with 247 assertions and the Vite production build succeeds cleanly.
+- Latest verification on 2026-10-16: all 60 Laravel tests pass with 298 assertions, Playwright E2E tests pass, and the Vite production build succeeds cleanly.

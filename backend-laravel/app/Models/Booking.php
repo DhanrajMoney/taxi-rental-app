@@ -49,6 +49,13 @@ class Booking extends Model
         });
     }
 
+    protected $appends = [
+        'total_expenses',
+        'billable_expenses',
+        'net_profit',
+        'profit_margin_pct',
+    ];
+
     public function customer()
     {
         return $this->belongsTo(Customer::class);
@@ -67,5 +74,49 @@ class Booking extends Model
     public function office()
     {
         return $this->belongsTo(Office::class);
+    }
+
+    public function expenses()
+    {
+        return $this->hasMany(BookingExpense::class);
+    }
+
+    public function getTotalExpensesAttribute(): float
+    {
+        $expenses = $this->relationLoaded('expenses')
+            ? $this->expenses
+            : $this->expenses()->get();
+
+        return (float) round($expenses->where('status', '!=', 'rejected')->sum('amount'), 2);
+    }
+
+    public function getBillableExpensesAttribute(): float
+    {
+        $expenses = $this->relationLoaded('expenses')
+            ? $this->expenses
+            : $this->expenses()->get();
+
+        return (float) round($expenses->where('status', '!=', 'rejected')->where('is_billable', true)->sum('amount'), 2);
+    }
+
+    public function getNetProfitAttribute(): float
+    {
+        $baseFare = (float) ($this->final_fare ?? $this->estimated_fare ?? 0);
+        $billable = $this->billable_expenses;
+        $totalExp = $this->total_expenses;
+
+        return (float) round(($baseFare + $billable) - $totalExp, 2);
+    }
+
+    public function getProfitMarginPctAttribute(): float
+    {
+        $baseFare = (float) ($this->final_fare ?? $this->estimated_fare ?? 0);
+        $customerTotal = $baseFare + $this->billable_expenses;
+
+        if ($customerTotal <= 0) {
+            return 0.0;
+        }
+
+        return (float) round(($this->net_profit / $customerTotal) * 100, 1);
     }
 }

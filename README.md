@@ -1,6 +1,6 @@
 # RideDesk Taxi Rental App
 
-> **Current Version:** `v1.4.0` | **Architecture:** Laravel 11 API + React 18 / Vite 5 SPA
+> **Current Version:** `v1.5.0` | **Architecture:** Laravel 11 API + React 18 / Vite 5 SPA
 
 RideDesk is a complete taxi rental operations management system split into two independently runnable applications:
 
@@ -14,7 +14,7 @@ RideDesk is a complete taxi rental operations management system split into two i
 - `backend-laravel/app/` contains API controllers, FormRequests, policies, and Eloquent models.
 - `backend-laravel/routes/api.php` defines the REST API endpoints.
 - `backend-laravel/database/` contains database migrations, seeders, and indexes.
-- `backend-laravel/tests/` contains backend unit and feature tests (**53 tests, 234 assertions**).
+- `backend-laravel/tests/` contains backend unit and feature tests (**60 tests, 298 assertions**).
 - `frontend-react/src/pages/` contains the dashboard workspace pages.
 - `frontend-react/src/components/` contains reusable UI modals, drawers, and form components.
 - `frontend-react/src/api/` contains the Axios API client layer with interceptors.
@@ -85,6 +85,7 @@ npm.cmd run dev
 - **Multi-Location Office Setup (`Offices.jsx`):** Branch location management with staff scoping, enabling independent branch-level fleet management while maintaining cross-office visibility for admins.
 - **Excel & CSV Data Import (`ImportData.jsx`):** Downloadable sample templates and dependency-ordered import pipeline (customers $\rightarrow$ taxis $\rightarrow$ drivers $\rightarrow$ bookings) with pre-validation previews, error reporting, and audit logs.
 - **Account Profile Hub (`ProfileModal.jsx`, `profile-modal.css`):** Command-center profile view with initials avatar, role badge, assigned branch office, editable personal details (Name & Email), password update with confirmation check, and security audit log of past login sessions.
+- **Ride & Trip Operational Expense Management (`BookingExpensesTab.jsx`, `ExpenseModal.jsx`, `expenses.css`):** Comprehensive trip-level operational expense recording across 6 categories (Fuel, Tolls & FASTag, Parking, Driver Allowance, Border Permits, Incidentals), billable vs company-absorbed classification, driver reimbursement lifecycle (Pending Approval -> Approved -> Reimbursed / Rejected), secure receipt file uploads with strict MIME and 10MB checks, real-time Trip P&L summary hero cards, and synchronization with Executive Financial Reports.
 - **Admin System Settings (`Settings.jsx`):** Centralized business configuration for company profile, currency symbols/codes, tax rates, warning day thresholds, and terms & conditions.
 
 ---
@@ -99,7 +100,7 @@ Run all feature and unit tests from `backend-laravel`:
 php artisan test
 ```
 
-*Result: **53 tests passing**, 234 assertions.*
+*Result: **60 tests passing**, 298 assertions.*
 
 ### Frontend Production Build (Vite)
 

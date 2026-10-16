@@ -258,8 +258,30 @@ export default function Reports() {
     return filteredMaintenance.reduce((sum, m) => sum + Number(m.cost ?? m.amount ?? 0), 0);
   }, [filteredMaintenance]);
 
-  const netOperatingProfit = finalizedRevenue - totalMaintenanceCost;
-  const operatingMargin = finalizedRevenue > 0 ? (netOperatingProfit / finalizedRevenue) * 100 : 0;
+  const totalTripExpenses = useMemo(() => {
+    return filteredBookings.reduce((sum, b) => {
+      if (b.total_expenses != null) return sum + Number(b.total_expenses);
+      if (Array.isArray(b.expenses)) {
+        return sum + b.expenses.filter((e) => e.status !== "rejected").reduce((s, e) => s + Number(e.amount || 0), 0);
+      }
+      return sum;
+    }, 0);
+  }, [filteredBookings]);
+
+  const billableAddons = useMemo(() => {
+    return filteredBookings.reduce((sum, b) => {
+      if (b.billable_expenses != null) return sum + Number(b.billable_expenses);
+      if (Array.isArray(b.expenses)) {
+        return sum + b.expenses.filter((e) => e.status !== "rejected" && e.is_billable).reduce((s, e) => s + Number(e.amount || 0), 0);
+      }
+      return sum;
+    }, 0);
+  }, [filteredBookings]);
+
+  const totalGrossRevenue = finalizedRevenue + billableAddons;
+  const totalOperatingCosts = totalMaintenanceCost + totalTripExpenses;
+  const netOperatingProfit = totalGrossRevenue - totalOperatingCosts;
+  const operatingMargin = totalGrossRevenue > 0 ? (netOperatingProfit / totalGrossRevenue) * 100 : 0;
 
   // Revenue Rows
   const revenueRows = useMemo(() => {
@@ -604,21 +626,21 @@ export default function Reports() {
             <div className="kpi-card revenue-card">
               <div className="kpi-icon-wrap">💰</div>
               <div className="kpi-details">
-                <span className="kpi-label">Finalized Revenue</span>
-                <strong className="kpi-value">{formatMoney(finalizedRevenue)}</strong>
+                <span className="kpi-label">Gross Realized Revenue</span>
+                <strong className="kpi-value">{formatMoney(totalGrossRevenue)}</strong>
                 <span className="kpi-subtext">
-                  Pipeline quote value: {formatMoney(estimatedPipeline)}
+                  Base: {formatMoney(finalizedRevenue)} {billableAddons > 0 ? `+ Add-ons: ${formatMoney(billableAddons)}` : `(Pipeline: ${formatMoney(estimatedPipeline)})`}
                 </span>
               </div>
             </div>
 
             <div className="kpi-card expense-card">
-              <div className="kpi-icon-wrap">🔧</div>
+              <div className="kpi-icon-wrap">🧾</div>
               <div className="kpi-details">
-                <span className="kpi-label">Maintenance Spend</span>
-                <strong className="kpi-value">{formatMoney(totalMaintenanceCost)}</strong>
+                <span className="kpi-label">Fleet & Trip Expenses</span>
+                <strong className="kpi-value">{formatMoney(totalOperatingCosts)}</strong>
                 <span className="kpi-subtext">
-                  {filteredMaintenance.length} logged service work orders
+                  Garage: {formatMoney(totalMaintenanceCost)} | Trip Exp: {formatMoney(totalTripExpenses)}
                 </span>
               </div>
             </div>

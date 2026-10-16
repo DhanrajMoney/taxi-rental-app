@@ -315,3 +315,36 @@ Built for effortless deployment on cPanel shared hosting, Apache, Nginx, or VPS:
   - `DATABASE_SETUP.md`
   - Production configurations: `env.production.example`, `nginx.conf.example`, `apache.htaccess.example`.
 
+---
+
+## 17. Ride & Trip Operational Expense Management (Phase 18)
+
+Comprehensive trip-level operational expense recording, driver reimbursement lifecycle, and real-time net ride profitability engine.
+
+- **Expense Categories:**
+  - ⛽ **Fuel & Energy:** Diesel, petrol, CNG, EV charging payments.
+  - 🛣️ **Tolls & FASTag:** Highway and toll plaza deductions.
+  - 🅿️ **Parking Charges:** Airport, railway station, municipal, and hotel parking fees.
+  - 🍽️ **Driver Allowance (Bata / DA):** Daily food allowance and outstation stay allowances.
+  - 🛂 **State Border & Interstate Permits:** Passenger entry taxes and interstate commercial permits.
+  - 🧹 **Incidentals & Repairs:** Puncture fixes, wash, and minor en-route consumables.
+- **Billing & Settlement Model:**
+  - **Billable vs Company-Absorbed:** Toggle whether an expense is added to the customer invoice at actuals or absorbed by company operations.
+  - **Payment Methods & Payer:** Driver Cash, Driver UPI, Corporate Card, FASTag, Customer Direct.
+- **Driver Reimbursement Workflow:**
+  - Statuses: `pending_approval` $\rightarrow$ `approved` $\rightarrow$ `reimbursed` / `rejected`.
+  - Drivers can log expenses and attach bill slips directly from mobile view.
+  - Staff and Admin review, approve, and reimburse claims.
+- **Receipt Attachments:**
+  - Strict upload validation (PDF, JPG, PNG up to 10MB) with secure local storage and private download endpoints.
+- **Real-Time Trip P&L & Profitability Engine:**
+  - Real-time calculation on bookings:
+    $$\text{Gross Total} = \text{Base Fare} + \text{Billable Add-ons}$$
+    $$\text{Total Expenses} = \sum \text{expenses (excluding rejected)}$$
+    $$\text{Net Profit} = \text{Gross Total} - \text{Total Expenses}$$
+    $$\text{Profit Margin \%} = \frac{\text{Net Profit}}{\text{Gross Total}} \times 100$$
+- **Slide-in Command Drawer Integration:**
+  - Dedicated **"💸 Expenses"** 5th tab in the slide-in booking drawer with live Trip P&L hero cards, filtering chips, receipt preview links, and approval action buttons.
+- **Executive Reporting Synchronization:**
+  - Reports workspace incorporates trip expenses alongside garage maintenance for true operational net margin calculations.
+

@@ -10,6 +10,7 @@ import {
 } from "../utils/format.js";
 import BookingForm from "../components/BookingForm.jsx";
 import CancelBookingModal from "../components/CancelBookingModal.jsx";
+import BookingExpensesTab from "../components/BookingExpensesTab.jsx";
 import useDebouncedValue from "../hooks/useDebouncedValue.js";
 import "../styles/bookings.css";
 
@@ -762,6 +763,15 @@ export default function Bookings({ canManage }) {
               >
                 <span>💰</span> Billing
               </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={panelTab === "expenses"}
+                className={`bk-tab-btn${panelTab === "expenses" ? " active" : ""}`}
+                onClick={() => setPanelTab("expenses")}
+              >
+                <span>💸</span> Expenses
+              </button>
             </div>
 
             {/* 3. Scrollable Panel Body */}
@@ -1121,12 +1131,46 @@ export default function Bookings({ canManage }) {
                     />
                   </DetailSection>
 
+                  {/* Ride Profitability & Expenses */}
+                  <DetailSection title="Ride Profitability & Expenses" icon="📊">
+                    <DetailRow
+                      label="Billable Add-ons"
+                      value={panelBooking.billable_expenses ? `+${formatCurrency(panelBooking.billable_expenses)}` : "None"}
+                    />
+                    <DetailRow
+                      label="Total Ride Expenses"
+                      value={panelBooking.total_expenses ? `-${formatCurrency(panelBooking.total_expenses)}` : "None recorded"}
+                    />
+                    <DetailRow
+                      label="Net Ride Profit"
+                      value={panelBooking.net_profit != null ? formatCurrency(panelBooking.net_profit) : null}
+                      subtext={panelBooking.profit_margin_pct != null ? `${panelBooking.profit_margin_pct}% margin` : null}
+                    />
+                  </DetailSection>
+
                   {/* Audit Trail */}
                   <DetailSection title="Audit & Records" icon="🕐">
                     <DetailRow label="Created On" value={formatDateTime(panelBooking.created_at)} />
                     <DetailRow label="Last Modified" value={formatDateTime(panelBooking.updated_at)} />
                   </DetailSection>
                 </div>
+              )}
+
+              {/* ─── TAB 5: OPERATIONAL EXPENSES (PHASE 18) ─── */}
+              {panelTab === "expenses" && (
+                <BookingExpensesTab
+                  booking={panelBooking}
+                  canManage={canManage}
+                  onBookingUpdated={() => {
+                    BookingAPI.get(panelBooking.id).then((fresh) => {
+                      const data = fresh?.data || fresh;
+                      if (data) {
+                        setDetailData(data);
+                        setBookings((prev) => prev.map((b) => (b.id === data.id ? data : b)));
+                      }
+                    });
+                  }}
+                />
               )}
             </div>
 

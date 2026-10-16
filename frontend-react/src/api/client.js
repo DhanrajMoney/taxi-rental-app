@@ -163,4 +163,26 @@ export const DashboardAPI = {
   overview: (params) => client.get("/dashboard/overview", { params }).then((r) => r.data),
 };
 
+export const ExpenseAPI = {
+  listAll: (params) => client.get("/expenses", { params }).then((r) => r.data),
+  listForBooking: (bookingId) => client.get(`/bookings/${bookingId}/expenses`).then((r) => r.data),
+  create: (bookingId, payload) => {
+    const config = payload instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : {};
+    return client.post(`/bookings/${bookingId}/expenses`, payload, config).then((r) => r.data);
+  },
+  update: (id, payload) => {
+    if (payload instanceof FormData) {
+      payload.append("_method", "PUT");
+      return client.post(`/expenses/${id}`, payload, { headers: { "Content-Type": "multipart/form-data" } }).then((r) => r.data);
+    }
+    return client.put(`/expenses/${id}`, payload).then((r) => r.data);
+  },
+  remove: (id) => client.delete(`/expenses/${id}`).then((r) => r.data),
+  approve: (id) => client.post(`/expenses/${id}/approve`).then((r) => r.data),
+  reimburse: (id) => client.post(`/expenses/${id}/reimburse`).then((r) => r.data),
+  reject: (id) => client.post(`/expenses/${id}/reject`).then((r) => r.data),
+  downloadReceipt: (id) => client.get(`/expenses/${id}/receipt`, { responseType: "blob" }).then((r) => r.data),
+  getReceiptUrl: (id) => `${BASE_URL}/expenses/${id}/receipt`,
+};
+
 export default client;

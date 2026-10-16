@@ -21,7 +21,7 @@ class BookingController extends Controller
 
     public function index(Request $request)
     {
-        $query = Booking::with(['taxi', 'driver', 'customer', 'office']);
+        $query = Booking::with(['taxi', 'driver', 'customer', 'office', 'expenses', 'expenses.driver', 'expenses.approver']);
         $this->applyUserAccessScope($query, $request->user());
 
         if ($search = $request->query('search')) {
@@ -129,7 +129,7 @@ class BookingController extends Controller
             return $booking;
         });
 
-        return response()->json($booking->load(['taxi', 'driver', 'customer', 'office']), 201);
+        return response()->json($booking->load(['taxi', 'driver', 'customer', 'office', 'expenses', 'expenses.driver', 'expenses.approver']), 201);
     }
 
     public function show(Request $request, Booking $booking)
@@ -138,7 +138,7 @@ class BookingController extends Controller
             abort(403, 'You are not assigned to this booking.');
         }
 
-        return response()->json($booking->load(['taxi', 'driver', 'customer', 'office']));
+        return response()->json($booking->load(['taxi', 'driver', 'customer', 'office', 'expenses', 'expenses.driver', 'expenses.approver']));
     }
 
     public function update(StoreBookingRequest $request, Booking $booking)
@@ -168,7 +168,7 @@ class BookingController extends Controller
             ]);
         }
 
-        return response()->json($booking->load(['taxi', 'driver', 'customer', 'office']));
+        return response()->json($booking->load(['taxi', 'driver', 'customer', 'office', 'expenses', 'expenses.driver', 'expenses.approver']));
     }
 
     public function destroy(Request $request, Booking $booking)
