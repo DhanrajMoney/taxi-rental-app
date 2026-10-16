@@ -176,9 +176,12 @@ export default function Bookings({ canManage }) {
   }, [selectedBooking]);
 
   /* ── Open side panel: render instantly, fetch full detail seamlessly ── */
-  function openDetail(booking) {
+  function openDetail(booking, initialTab = null) {
     setSelectedBooking(booking);
     setDetailData(booking); // Show immediately without blank screen flash
+    if (initialTab) {
+      setPanelTab(initialTab);
+    }
 
     // Fetch latest fresh record with all relationships in background
     BookingAPI.get(booking.id).then((full) => {
@@ -585,6 +588,17 @@ export default function Bookings({ canManage }) {
                             {booking.final_fare == null && <em> est.</em>}
                           </span>
                         )}
+                        <button
+                          type="button"
+                          className="bk-card-expense-pill"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDetail(booking, "expenses");
+                          }}
+                          title="View and log operational expenses"
+                        >
+                          💸 {booking.total_expenses > 0 ? formatCurrency(booking.total_expenses) : "Expenses"}
+                        </button>
                       </div>
                     </div>
 
@@ -722,6 +736,15 @@ export default function Bookings({ canManage }) {
                   <span>{copiedKey === "summary" ? "✓" : "📤"}</span>
                   {copiedKey === "summary" ? "Copied" : "Share Summary"}
                 </button>
+
+                <button
+                  type="button"
+                  className={`bk-quick-btn${panelTab === "expenses" ? " active" : ""}`}
+                  onClick={() => setPanelTab("expenses")}
+                  title="View and log trip operational expenses"
+                >
+                  <span>💸</span> Expenses
+                </button>
               </div>
             </div>
 
@@ -752,7 +775,7 @@ export default function Bookings({ canManage }) {
                 className={`bk-tab-btn${panelTab === "fleet" ? " active" : ""}`}
                 onClick={() => setPanelTab("fleet")}
               >
-                <span>🚕</span> Fleet & Crew
+                <span>🚕</span> Fleet
               </button>
               <button
                 type="button"
@@ -771,6 +794,9 @@ export default function Bookings({ canManage }) {
                 onClick={() => setPanelTab("expenses")}
               >
                 <span>💸</span> Expenses
+                {panelBooking.expenses?.length > 0 && (
+                  <span className="bk-tab-badge">{panelBooking.expenses.length}</span>
+                )}
               </button>
             </div>
 
