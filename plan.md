@@ -1,6 +1,6 @@
 # Rent A Ride Desk Feature Plan
 
-> Last reviewed: 2026-10-16
+> Last reviewed: 2026-10-18
 
 ## Goal
 Build a complete taxi rental operations dashboard for admins, staff, and drivers.
@@ -348,9 +348,53 @@ Build a complete taxi rental operations dashboard for admins, staff, and drivers
 
 **Done when:** Drivers and staff can record trip-level fuel, toll, parking, and allowance expenses with receipt slips, dispatchers can approve reimbursements, and fleet managers can view the exact real-time net profitability of every single ride.
 
+## Phase 19: Taxi Vehicle Photography, Ownership & Modular Form Architecture Rebuild
+**Priority:** High
+
+**Status:** Completed in authenticated Laravel 11 API (migration `2026_10_18_000001_add_photos_and_ownership_to_taxis_table.php`, `Taxi` model with `$appends = ['photo_front_url', 'photo_back_url', 'document_url']`, `StoreTaxiRequest`, `TaxiController` file storage & removal logic) and React frontend (`TaxiForm.jsx`, `taxi-form.css`, `Taxis.jsx`, `taxis.css`). Features front and rear vehicle photography, ownership classification, a completely redesigned 5-step modal form with zero-scroll tab navigation, live checklist bar, Indian number plate preview, document attachments, and a modular stylesheet architecture reducing `taxis.css` by ~50%.
+
+- **1. Front & Rear Vehicle Photography:**
+  - High-resolution image capture for Front View (grille & registration plate) and Rear View (boot & tailgate).
+  - Native HTML5 drag-and-drop file uploaders with visual drop indicators (`.is-dragging`).
+  - Real-time thumbnail previews with aspect-ratio preservation and zoom-on-click modals.
+  - Automated public disk storage (`taxis/photos`) with clean file deletion upon photo replacement, removal, or vehicle deletion.
+  - Public asset URLs exposed via Eloquent accessors (`photo_front_url`, `photo_back_url`).
+
+- **2. Vehicle Ownership Tracking:**
+  - Comprehensive asset ownership classification supporting `Company Owned`, `Driver Owned`, `Leased`, `Attached Fleet`, and `Third-Party Partner`.
+  - Free-form text input paired with 1-click quick-select suggestion chips.
+  - Odometer mileage pairing and specifications tracking.
+
+- **3. Rebuilt Add / Register Taxi Modal Form (`TaxiForm.jsx`):**
+  - **Live Form Completeness Checklist Bar:** Interactive top strip tracking Registration, Model, Photos, Ownership, Rate, Status, and RC Document with 1-click section jumps.
+  - **Stepped Tab Navigation (Zero-Scroll Mode):** 5 dedicated tabs:
+    1. 🚗 *Identity*: Registration number with **live Indian License Plate visual box (`IND | UP 21 AB 1234`)**, model input with popular suggestions, interactive vehicle type cards (`Sedan`, `SUV`, `Hatchback`, `Mini Bus`), year dropdown, and passenger capacity chips.
+    2. 📷 *Photographs*: Side-by-side front and rear upload cards with drag-and-drop, file drop feedback, replace/remove buttons, and zoom triggers.
+    3. ⚙️ *Specs & Ownership*: Ownership presets, fuel type selector (Petrol, Diesel, CNG, EV), and odometer mileage.
+    4. 💳 *Rates & Fleet*: Pricing model toggle (Daily Rental vs Per Kilometer), bold currency input with live billing helper text, operational status, branch office, and primary driver allocation.
+    5. 📄 *Docs & Notes*: Registration Certificate (RC / permit) file attachment (PDF/JPG/PNG up to 4MB) with 1-click view link and vehicle remarks/insurance notes.
+  - **"Show All Sections" Toggle:** Seamlessly switches between the focused step-by-step tab view and a continuous all-sections view.
+  - **Smart Validation & Error Prevention:** Pre-validates each step before advancing. Automatically highlights and focuses any missing required fields with a clear alert banner.
+  - **Accessibility & Lifecycle Optimizations:** Keyboard shortcuts (<kbd>Ctrl</kbd> + <kbd>Enter</kbd> to submit, <kbd>Esc</kbd> to dismiss), auto-sanitized plate inputs, and automated blob URL revocation to prevent browser memory leaks.
+
+- **4. Slide-in Taxi Detail Drawer Enhancements:**
+  - Always-visible **Vehicle Photographs** gallery with interactive front and rear photo cards (zoom on click).
+  - Empty-state fallback card (`"📷 No vehicle photographs uploaded yet"`) with direct `+ Add Photos` button that opens the edit dialog.
+  - **Custom Smooth Scroller:** 6px styled scrollbar track and thumb for smooth navigation through technical specifications, driver details, rates, and audit records.
+
+- **5. Modular Stylesheet Architecture:**
+  - Extracted modal form styles into [`taxi-form.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxi-form.css).
+  - Reduced [`taxis.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxis.css) from 1,878 lines down to 965 lines (~50% reduction).
+
+- **6. Quality Assurance & Automated Testing:**
+  - Automated PHPUnit tests (`TaxiPhotoAndOwnershipTest.php`) verifying photo uploads, updates, removals, document attachments, and storage assertions.
+  - Full suite of 63 tests (320 assertions) passing.
+
+**Done when:** Fleet managers can upload front and rear photos, assign vehicle ownership, register/edit taxis without missing any fields through a tabbed zero-scroll form with live completeness checks, and inspect photos in the right slide-in detail drawer.
+
 ## Technical Checklist
 
-- Current UI app version: `1.5.0`.
+- Current UI app version: `1.6.0`.
 - Whenever a feature is implemented, increment `APP_VERSION` in `frontend-react/src/App.jsx` and update this version here.
 - Add Laravel migrations, models, requests, policies, and API resources for each feature.
 - Add focused API tests for permissions and validation.
@@ -362,4 +406,4 @@ Build a complete taxi rental operations dashboard for admins, staff, and drivers
 - Keep date formatting consistent across all React tables with the shared formatter in `frontend-react/src/utils/formatDate.js`.
 - Run `php artisan test` and `npm run build` before releasing changes.
 - Database optimized: applied performance index migration (`2026_10_11_000001_optimize_performance_indexes.php`) and executed `OPTIMIZE TABLE` & `ANALYZE TABLE` across all MySQL tables.
-- Latest verification on 2026-10-16: all 60 Laravel tests pass with 298 assertions, Playwright E2E tests pass, and the Vite production build succeeds cleanly.
+- Latest verification on 2026-10-18: all 63 Laravel tests pass with 320 assertions, Playwright E2E tests pass, and the Vite production build succeeds cleanly.

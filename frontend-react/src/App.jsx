@@ -16,7 +16,7 @@ const ImportData = lazy(() => import("./pages/ImportData.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 const DocumentsPanel = lazy(() => import("./components/DocumentsPanel.jsx"));
 
-export const APP_VERSION = "1.5.0";
+export const APP_VERSION = "1.6.0";
 
 const pageMeta = {
   overview: {
