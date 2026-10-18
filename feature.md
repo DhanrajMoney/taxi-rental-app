@@ -1,6 +1,6 @@
 # RideDesk — Complete Web Application Feature Documentation
 
-> **Application Version:** `v1.4.0`  
+> **Application Version:** `v1.6.0`  
 > **Tech Stack:** Laravel 11 RESTful API + React 18 / Vite 5 SPA  
 > **Target Audience:** Fleet Owners, Fleet Operations Managers, Dispatch Staff, and Drivers
 
@@ -12,7 +12,7 @@
 2. [User Roles & Access Control](#2-user-roles--access-control)
 3. [Operations Command Hub (Dashboard)](#3-operations-command-hub-dashboard)
 4. [Rental Booking Management](#4-rental-booking-management)
-5. [Taxi Fleet Management](#5-taxi-fleet-management)
+5. [Taxi Fleet Management & Vehicle Asset Records](#5-taxi-fleet-management--vehicle-asset-records)
 6. [Driver Fleet Management](#6-driver-fleet-management)
 7. [Compliance & Document Center](#7-compliance--document-center)
 8. [Fleet Maintenance Desk](#8-fleet-maintenance-desk)
@@ -22,20 +22,21 @@
 12. [User Management](#12-user-management)
 13. [Account Profile & Security Hub](#13-account-profile--security-hub)
 14. [Admin System Settings](#14-admin-system-settings)
-15. [Security & Performance Hardening](#15-security--performance-hardening)
-16: [Deployment & Release Packaging](#16-deployment--release-packaging)
+15. [Ride & Trip Operational Expense Management](#15-ride--trip-operational-expense-management)
+16. [Security & Performance Hardening](#16-security--performance-hardening)
+17. [Deployment & Release Packaging](#17-deployment--release-packaging)
 
 ---
 
 ## 1. Executive Summary & Architecture
 
-RideDesk is an end-to-end taxi fleet rental and operations enterprise application. It bridges reservations, fleet availability, driver compliance, garage maintenance, branch logistics, and financial P&L reporting into a centralized command center.
+RideDesk is an end-to-end taxi fleet rental and operations enterprise application. It bridges reservations, fleet availability, driver compliance, garage maintenance, branch logistics, en-route trip expenses, and financial P&L reporting into a centralized command center.
 
 ### Core Architectural Pillars
 - **Decoupled / Single-Origin Support:** Designed to run either as a unified single-origin deployment (e.g. cPanel, Apache, Nginx serving the compiled React build directly through Laravel's public directory) or as a decoupled client-server architecture.
 - **RESTful API Layer:** Strict request validation via dedicated `FormRequest` classes, Eloquent model relationships, eager loading to prevent $N+1$ query overhead, database indexing, and transactional integrity.
-- **Modern Responsive React SPA:** Component-driven frontend built with Vite 5, featuring slide-in detail drawers (460px wide, zero horizontal overflow), modal popovers, real-time KPI ribbons, and persistent authentication across page refreshes.
-- **Unified Design System:** Deep navy/teal palette (`#153d4a`, `#102f3a`), warm gold/amber accents (`#c9933b`), rounded card elevations, and custom-styled form controls.
+- **Modern Responsive React SPA:** Component-driven frontend built with Vite 5, featuring slide-in detail drawers (440px wide, zero horizontal overflow), modal popovers, real-time KPI ribbons, and persistent authentication across page refreshes.
+- **Modular Stylesheet Architecture:** Scoped stylesheets (`taxis.css`, `taxi-form.css`, `bookings.css`, `booking-form.css`, `expenses.css`, etc.) adhering to a consistent deep navy/teal palette (`#153d4a`, `#102f3a`), warm gold/amber accents (`#c9933b`), rounded card elevations, and custom-styled form controls.
 
 ---
 
@@ -46,8 +47,8 @@ The platform enforces three distinct user access tiers:
 | Role | Target Persona | Scope of Access | Key Capabilities |
 |---|---|---|---|
 | **Administrator** (`admin`) | Fleet Owners & General Managers | Global (All Branches) | Full read/write access: taxis, drivers, bookings, offices, data imports, system settings, user management, and financial P&L reports. |
-| **Operations Staff** (`staff`) | Dispatchers & Branch Managers | Branch-Scoped (Assigned Office) | Create & manage bookings, dispatch taxis & drivers, log maintenance work orders, upload documents, and view branch fleet metrics. |
-| **Driver Partner** (`driver`) | Vehicle Drivers | Personal (Assigned Records) | View assigned fleet vehicle, personal trip roster, pickup/drop route details, and compliance document records. Restricted from administrative modules. |
+| **Operations Staff** (`staff`) | Dispatchers & Branch Managers | Branch-Scoped (Assigned Office) | Create & manage bookings, dispatch taxis & drivers, log maintenance work orders, upload documents, record trip expenses, and view branch fleet metrics. |
+| **Driver Partner** (`driver`) | Vehicle Drivers | Personal (Assigned Records) | View assigned fleet vehicle, personal trip roster, pickup/drop route details, submit reimbursable trip expenses, and view compliance document records. Restricted from administrative modules. |
 
 ---
 
@@ -96,47 +97,60 @@ Comprehensive lifecycle management of vehicle reservations from initial quotatio
     - Booking Reference ID Hero (`#BK-00042`) with 1-click clipboard copy button and animated `Copied!` confirmation.
     - Quick Customer Action Bar: 📞 Direct Call (`tel:`), ✉️ Direct Email (`mailto:`), and 📤 Share Summary (copies full structured dispatch details formatted for WhatsApp/SMS/Slack).
     - Blur backdrop overlay and keyboard `Esc` shortcut for instant dismissal.
-  - **Segmented 4-Tab Navigation:**
-    - 🧭 **Journey:**
-      - **Visual Route Progress Timeline:** Green pickup node with scheduled date/time, dotted connector with duration & planned km badges (`🛣️ 150 km planned`), and drop-off destination node with return date/time.
-      - **Dispatching Branch:** Office location, contact phone, and address.
-      - **Trip Remarks & Special Requests:** Special instructions and customer notes.
-      - **Cancellation Warning:** High-visibility alert banner highlighting cancellation reason if reservation is cancelled.
-    - 👤 **Passenger:**
-      - Customer Profile Hero card with dynamic gradient avatar initials (`getAvatarColor`), customer full name, and passenger role tag.
-      - Direct contact rows with 1-click phone call & copy button, email compose & copy button, and registered residential/corporate address.
-    - 🚕 **Fleet & Crew:**
-      - **Assigned Fleet Vehicle:** Indian vehicle registration plate badge (`IND MH-02-CB-1234`), make & model, vehicle class (Sedan, SUV, Hatchback), passenger seating capacity, and fuel type.
-      - **Assigned Chauffeur:** Driver profile with avatar initials, name, 1-click phone call button, and commercial license number badge.
-      - **Unassigned State:** Helpful empty state cards with 1-click "Assign Now" shortcuts.
-    - 💰 **Billing:**
-      - **Fare Hero Card:** Prominent fare display with status tag (`Final Billed` vs `Estimated Quote`).
-      - **Rate Structure:** Pricing model (Per-km vs Daily Rental) and unit rate breakdown.
-      - **Odometer & Mileage:** Start/end odometer readings and actual distance tracked.
-      - **Audit Records:** Creation and last modification timestamps.
+  - **Segmented 5-Tab Navigation:**
+    - 🧭 **Journey:** Visual Route Progress Timeline with green pickup node, scheduled date/time, dotted connector with duration & planned km badges, destination drop-off node, dispatching branch info, trip notes, and cancellation warning banner with stated reason.
+    - 👤 **Passenger:** Customer Profile Hero card with dynamic gradient avatar initials, customer full name, passenger role tag, and direct contact rows (Phone call & copy, Email compose & copy, street address).
+    - 🚕 **Fleet & Crew:** Assigned Fleet Vehicle card with Indian license plate badge (`IND MH-02-CB-1234`), make & model, vehicle class, capacity, and fuel type. Assigned Chauffeur card with driver avatar initials, name, 1-click call button, and commercial license number badge. Informative empty state cards with 1-click "Assign Now" shortcuts.
+    - 💰 **Billing:** Fare Hero card (Final Billed vs Estimated Quote), rate structure matrix (per-km vs daily rental), start/end odometer mileage tracking, and system audit trail.
+    - 💸 **Expenses:** Dedicated trip operational expense ledger, Trip P&L summary hero card, receipt attachments, and approval buttons.
   - **Sticky Bottom Action Footer:** Prominent "Edit Booking" and "Cancel Booking" buttons (gated by `canManage`).
   - **Zero-Overflow & Responsive Styling:** Complete zero-overflow protection (`word-break: break-word`, `overflow-wrap: anywhere`, `min-width: 0`, and custom slim scrollbars). Full mobile responsiveness ($\le 600\text{px}$) with full-width drawer and stacked action buttons.
 - **Cancellation Protection Modal:** Dedicated modal preventing accidental deletion, capturing structured cancellation reasons, and gracefully freeing assigned taxi and driver records.
 
 ---
 
-## 5. Taxi Fleet Management
+## 5. Taxi Fleet Management & Vehicle Asset Records
 
-Enterprise asset tracking for vehicles across multiple branches.
+Enterprise asset tracking, vehicle photography, ownership classification, and fleet maintenance integration.
 
 - **Dual View Modes:**
   - **Interactive Cards Grid View:** Elevated vehicle cards displaying category icons (Sedan, SUV, Hatchback, Mini Bus), registration number plate badges, assigned driver, office branch, and daily/per-km pricing tags.
   - **High-Density Table View:** Compact administrative table for rapid sorting, mass scanning, and quick-action access.
 - **Live Fleet KPI Summary Strip:** Real-time counters showing Total Fleet, Available, On Rent, In Workshop, and Inactive vehicles.
 - **Multi-Criteria Debounced Filtering:** Filter by vehicle make/model, registration plate, vehicle type, and current status.
-- **Slide-in Taxi Detail Drawer:**
+- **Front & Rear Vehicle Photography:**
+  - High-resolution photographic asset management capturing Front View (grille & license plate) and Rear View (boot & tailgate).
+  - Native HTML5 drag-and-drop file uploaders with visual hover glow (`.is-dragging`).
+  - Real-time thumbnail previews with aspect-ratio preservation and zoom-on-click modals.
+  - Automated public disk storage (`taxis/photos`) with clean file deletion upon replacement, removal, or vehicle deletion.
+  - Public asset URLs exposed via Eloquent accessors (`photo_front_url`, `photo_back_url`).
+- **Vehicle Ownership Tracking:**
+  - Multi-tier ownership classification supporting `Company Owned`, `Driver Owned`, `Leased`, `Attached Fleet`, and `Third-Party Partner`.
+  - Free-form text input paired with 1-click quick-select suggestion chips.
+  - Odometer mileage pairing and specifications tracking.
+- **Rebuilt Add / Register Taxi Modal Form (`TaxiForm.jsx` & `taxi-form.css`):**
+  - **Live Form Completeness Checklist Bar:** Interactive top strip tracking Registration, Model, Photos, Ownership, Rate, Status, and RC Document with 1-click section jumps. Prevents missing fields before saving.
+  - **Stepped Tab Navigation (Zero-Scroll Mode):** 5 dedicated tabs:
+    1. 🚗 *Identity*: Registration number with **live Indian License Plate visual box (`IND | UP 21 AB 1234`)**, model input with popular suggestions, interactive vehicle type cards (`Sedan`, `SUV`, `Hatchback`, `Mini Bus`), year dropdown, and passenger capacity chips.
+    2. 📷 *Photographs*: Side-by-side front and rear upload cards with drag-and-drop, file drop feedback, replace/remove buttons, and zoom triggers.
+    3. ⚙️ *Specs & Ownership*: Ownership presets, fuel type selector (Petrol, Diesel, CNG, EV), and odometer mileage.
+    4. 💳 *Rates & Fleet*: Pricing model toggle (Daily Rental vs Per Kilometer), bold currency input with live billing helper text, operational status, branch office, and primary driver allocation.
+    5. 📄 *Docs & Notes*: Registration Certificate (RC / permit) file attachment (PDF/JPG/PNG up to 4MB) with 1-click view link and vehicle remarks/insurance notes.
+  - **"Show All Sections" Toggle:** Seamlessly switches between the focused step-by-step tab view and a continuous all-sections view.
+  - **Smart Validation & Error Prevention:** Pre-validates each step before advancing. Automatically highlights and focuses any missing required fields with a clear alert banner.
+  - **Accessibility & Lifecycle Optimizations:** Keyboard shortcuts (<kbd>Ctrl</kbd> + <kbd>Enter</kbd> to submit, <kbd>Esc</kbd> to dismiss), auto-sanitized plate inputs, and automated blob URL revocation to prevent browser memory leaks.
+- **Slide-in Taxi Detail Drawer (Right Sidepanel):**
   - Prominent Registration Number Hero with **1-click Copy Registration** button.
-  - Vehicle Specifications: Make, model, year, passenger capacity, fuel type, current odometer reading.
+  - Always-visible **Vehicle Photographs** gallery with interactive front and rear photo cards (zoom on click) and an empty-state fallback card (`"📷 No vehicle photographs uploaded yet"`) with direct `+ Add Photos` trigger.
+  - **Custom Smooth Scroller:** 6px styled scrollbar track and thumb for smooth navigation through technical specifications, driver details, rates, and audit records.
+  - Vehicle Specifications: Make, model, year, passenger capacity, fuel type, current odometer reading, and ownership status.
   - Assigned Driver profile with direct phone link.
   - Rates & Billing Policy: Daily rental rate or per-kilometer rate structure.
   - Branch location affiliation.
   - Compliance Documents list attached to the vehicle.
-- **Rebuilt Taxi Form Modal:** Responsive dialog with office dropdown, vehicle category selector, pricing model toggle, and validation rules.
+- **Modular Stylesheet Architecture:**
+  - Extracted modal form styles into dedicated [`taxi-form.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxi-form.css).
+  - Reduced [`taxis.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxis.css) from 1,878 lines down to 965 lines (~50% reduction).
 
 ---
 
@@ -172,7 +186,7 @@ Centralized repository for persistent regulatory compliance records.
   - `Expired` (Red Badge): Overdue compliance documents requiring immediate vehicle grounding or driver suspension.
   - `Expiring Soon` (Amber Badge): Documents expiring within the configured threshold (default 30 days) with countdown badges (e.g. `Expires in 12 days`).
   - `Compliant / Valid` (Green Badge): Active and verified records.
-- **Security Validation:** Hardened file uploads enforcing strict MIME types (`pdf,jpg,jpeg,png`) and 10MB constraints to prevent arbitrary file upload vulnerabilities.
+- **Security Validation:** Hardened file uploads enforcing strict MIME types (`pdf,jpg,jpeg,png,webp`) and 10MB constraints to prevent arbitrary file upload vulnerabilities.
 - **Document Actions:** Direct browser file downloads and deletion with cascade cleanup.
 
 ---
@@ -201,7 +215,7 @@ Full garage repair ledger and proactive maintenance scheduling.
 Decision-support reporting engine for executive management and financial oversight.
 
 - **Executive Financial & P&L Statement:**
-  - Realized Booking Revenue vs Maintenance Expenses = **Net Operating Margin** & **Profit Margin %**.
+  - Realized Booking Revenue vs Maintenance Expenses vs Trip Operational Expenses = **Net Operating Margin** & **Profit Margin %**.
   - Pipeline analysis comparing realized completed revenue vs estimated unfinalized bookings.
 - **Monthly Trajectory Dual-Bar Chart:** Visual dual-bar chart comparing month-by-month revenue inflow against maintenance upkeep costs.
 - **Fleet Utilization Report:** Individual vehicle utilization rates with color-coded gauge progress bars:
@@ -286,38 +300,7 @@ Centralized configuration panel for global operational rules.
 
 ---
 
-## 15. Security & Performance Hardening
-
-Production-grade engineering optimizations implemented across the stack:
-
-- **Arbitrary File Upload Mitigation:** Validation rules in `DriverDocumentController.php` enforce strict MIME type whitelisting (`pdf,jpg,jpeg,png`) and 10MB file limits.
-- **Session Persistence:** Auth token stored in `localStorage` under `ridedesk_auth_token` with automatic session re-hydration upon page reload, eliminating accidental session drops.
-- **Batched Dashboard Settings Query:** Replaced individual sequential queries in `DashboardController.php` with a single batch `whereIn` query, saving multiple database roundtrips on every page view.
-- **Enhanced Multi-Field Search:** Search builder matches customer name, phone, pickup, drop-off, numeric Booking IDs, and vehicle plate numbers.
-- **DRY Utility Centralization:** Consolidated currency, date/time, clipboard, and avatar helpers into [`format.js`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/utils/format.js), reducing bundle sizes across all page chunks.
-- **CSS Optimization:** Restructured [`taxis.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxis.css) from 1,109 lines down to 486 lines ($>56\%$ reduction) while preserving full visual fidelity.
-- **Comprehensive Automated Test Suite:** **53 PHPUnit feature tests passing** with 234 assertions covering permissions, validation, calculations, imports, and security.
-
----
-
-## 16. Deployment & Release Packaging
-
-Built for effortless deployment on cPanel shared hosting, Apache, Nginx, or VPS:
-
-- **Single-Origin Deployment:** The React Vite production bundle (`frontend-react/dist/`) compiles directly into Laravel's public web root (`backend-laravel/public/`), allowing the entire app to run on a single domain/port without Node.js on the server.
-- **Automated Packaging Pipelines:**
-  - **Windows PowerShell:** `powershell.exe -ExecutionPolicy Bypass -File .\installation\package-release.ps1`
-  - **Linux / macOS:** `./installation/package-release.sh`
-  - *Automates testing, Vite compilation, asset copying, and creates a clean production-ready `.zip` release archive.*
-- **Step-by-Step Guides:** Complete guides available in `installation/`:
-  - `INSTALLATION_GUIDE.md`
-  - `CPANEL_DEPLOYMENT_GUIDE.md`
-  - `DATABASE_SETUP.md`
-  - Production configurations: `env.production.example`, `nginx.conf.example`, `apache.htaccess.example`.
-
----
-
-## 17. Ride & Trip Operational Expense Management (Phase 18)
+## 15. Ride & Trip Operational Expense Management
 
 Comprehensive trip-level operational expense recording, driver reimbursement lifecycle, and real-time net ride profitability engine.
 
@@ -348,3 +331,34 @@ Comprehensive trip-level operational expense recording, driver reimbursement lif
 - **Executive Reporting Synchronization:**
   - Reports workspace incorporates trip expenses alongside garage maintenance for true operational net margin calculations.
 
+---
+
+## 16. Security & Performance Hardening
+
+Production-grade engineering optimizations implemented across the stack:
+
+- **Strict File Upload Hardening:** Strict MIME type whitelisting (`pdf,jpg,jpeg,png,webp`) and size limits enforced across driver documents, vehicle RC certificates, taxi photographs, and expense receipt slips.
+- **Browser Memory Leak Prevention:** Automatic revocation of generated blob preview URLs (`URL.revokeObjectURL()`) on file replacement and modal dismiss in photo uploaders.
+- **Session Persistence:** Auth token stored in `localStorage` under `ridedesk_auth_token` with automatic session re-hydration upon page reload, eliminating accidental session drops.
+- **Batched Dashboard Settings Query:** Single batch `whereIn` query in `DashboardController.php`, saving multiple database roundtrips on every page view.
+- **Enhanced Multi-Field Search:** Search builder matches customer name, phone, pickup, drop-off, numeric Booking IDs, and vehicle plate numbers.
+- **DRY Utility Centralization:** Consolidated currency, date/time, clipboard, and avatar helpers into [`format.js`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/utils/format.js), reducing bundle sizes across all page chunks.
+- **Modular Stylesheet Architecture:** Separated modal form styles into [`taxi-form.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxi-form.css), reducing [`taxis.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxis.css) from 1,878 lines down to 965 lines (~50% reduction).
+- **Comprehensive Automated Test Suite:** **63 PHPUnit feature tests passing** with 320 assertions covering permissions, validation, calculations, imports, vehicle photography, ownership, and security.
+
+---
+
+## 17. Deployment & Release Packaging
+
+Built for effortless deployment on cPanel shared hosting, Apache, Nginx, or VPS:
+
+- **Single-Origin Deployment:** The React Vite production bundle (`frontend-react/dist/`) compiles directly into Laravel's public web root (`backend-laravel/public/`), allowing the entire app to run on a single domain/port without Node.js on the server.
+- **Automated Packaging Pipelines:**
+  - **Windows PowerShell:** `powershell.exe -ExecutionPolicy Bypass -File .\installation\package-release.ps1`
+  - **Linux / macOS:** `./installation/package-release.sh`
+  - *Automates testing, Vite compilation, asset copying, and creates a clean production-ready `.zip` release archive.*
+- **Step-by-Step Guides:** Complete guides available in `installation/`:
+  - `INSTALLATION_GUIDE.md`
+  - `CPANEL_DEPLOYMENT_GUIDE.md`
+  - `DATABASE_SETUP.md`
+  - Production configurations: `env.production.example`, `nginx.conf.example`, `apache.htaccess.example`.
