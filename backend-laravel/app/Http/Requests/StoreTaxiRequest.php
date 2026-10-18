@@ -43,6 +43,12 @@ class StoreTaxiRequest extends FormRequest
             'odometer_reading' => ['nullable', 'integer', 'min:0'],
             'document' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
             'notes' => ['nullable', 'string'],
+            'ownership' => ['nullable', 'string', 'max:100'],
+            'photo_front' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
+            'photo_back' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
+            'remove_photo_front' => ['nullable', 'boolean'],
+            'remove_photo_back' => ['nullable', 'boolean'],
+            'remove_document' => ['nullable', 'boolean'],
         ];
     }
 }

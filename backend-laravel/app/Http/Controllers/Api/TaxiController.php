@@ -55,6 +55,14 @@ class TaxiController extends Controller
             $data['document_path'] = $request->file('document')->store('taxis/documents', 'public');
         }
 
+        if ($request->hasFile('photo_front')) {
+            $data['photo_front_path'] = $request->file('photo_front')->store('taxis/photos', 'public');
+        }
+
+        if ($request->hasFile('photo_back')) {
+            $data['photo_back_path'] = $request->file('photo_back')->store('taxis/photos', 'public');
+        }
+
         $taxi = Taxi::create($data);
 
         return response()->json($taxi->load(['driver', 'office']), 201);
@@ -72,7 +80,39 @@ class TaxiController extends Controller
         $data = $request->validated();
 
         if ($request->hasFile('document')) {
+            if ($taxi->document_path) {
+                Storage::disk('public')->delete($taxi->document_path);
+            }
             $data['document_path'] = $request->file('document')->store('taxis/documents', 'public');
+        } elseif ($request->boolean('remove_document')) {
+            if ($taxi->document_path) {
+                Storage::disk('public')->delete($taxi->document_path);
+            }
+            $data['document_path'] = null;
+        }
+
+        if ($request->hasFile('photo_front')) {
+            if ($taxi->photo_front_path) {
+                Storage::disk('public')->delete($taxi->photo_front_path);
+            }
+            $data['photo_front_path'] = $request->file('photo_front')->store('taxis/photos', 'public');
+        } elseif ($request->boolean('remove_photo_front')) {
+            if ($taxi->photo_front_path) {
+                Storage::disk('public')->delete($taxi->photo_front_path);
+            }
+            $data['photo_front_path'] = null;
+        }
+
+        if ($request->hasFile('photo_back')) {
+            if ($taxi->photo_back_path) {
+                Storage::disk('public')->delete($taxi->photo_back_path);
+            }
+            $data['photo_back_path'] = $request->file('photo_back')->store('taxis/photos', 'public');
+        } elseif ($request->boolean('remove_photo_back')) {
+            if ($taxi->photo_back_path) {
+                Storage::disk('public')->delete($taxi->photo_back_path);
+            }
+            $data['photo_back_path'] = null;
         }
 
         $taxi->update($data);
@@ -88,12 +128,20 @@ class TaxiController extends Controller
             ->filter()
             ->all();
         $legacyDocumentPath = $taxi->document_path;
+        $photoFrontPath = $taxi->photo_front_path;
+        $photoBackPath = $taxi->photo_back_path;
 
         $taxi->forceDelete();
 
         Storage::disk('local')->delete($localFilePaths);
         if ($legacyDocumentPath) {
             Storage::disk('public')->delete($legacyDocumentPath);
+        }
+        if ($photoFrontPath) {
+            Storage::disk('public')->delete($photoFrontPath);
+        }
+        if ($photoBackPath) {
+            Storage::disk('public')->delete($photoBackPath);
         }
 
         return response()->json(['message' => 'Taxi permanently deleted'], 200);

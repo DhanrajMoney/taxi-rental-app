@@ -72,7 +72,13 @@ export const TaxiAPI = {
   list: (params) => client.get("/taxis", { params }).then((r) => r.data),
   get: (id) => client.get(`/taxis/${id}`).then((r) => r.data),
   create: (payload) => client.post("/taxis", payload).then((r) => r.data),
-  update: (id, payload) => client.put(`/taxis/${id}`, payload).then((r) => r.data),
+  update: (id, payload) => {
+    if (payload instanceof FormData) {
+      payload.append("_method", "PUT");
+      return client.post(`/taxis/${id}`, payload).then((r) => r.data);
+    }
+    return client.put(`/taxis/${id}`, payload).then((r) => r.data);
+  },
   remove: (id) => client.delete(`/taxis/${id}`).then((r) => r.data),
 };
 

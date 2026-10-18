@@ -14,7 +14,25 @@ class Taxi extends Model
         'reg_number', 'vehicle_type', 'make_model', 'year_of_manufacture',
         'seating_capacity', 'fuel_type', 'pricing_type', 'rate_amount', 'daily_rate', 'status', 'driver_id', 'office_id',
         'odometer_reading', 'document_path', 'notes',
+        'ownership', 'photo_front_path', 'photo_back_path',
     ];
+
+    protected $appends = ['photo_front_url', 'photo_back_url', 'document_url'];
+
+    public function getPhotoFrontUrlAttribute(): ?string
+    {
+        return $this->photo_front_path ? asset('storage/' . ltrim($this->photo_front_path, '/')) : null;
+    }
+
+    public function getPhotoBackUrlAttribute(): ?string
+    {
+        return $this->photo_back_path ? asset('storage/' . ltrim($this->photo_back_path, '/')) : null;
+    }
+
+    public function getDocumentUrlAttribute(): ?string
+    {
+        return $this->document_path ? asset('storage/' . ltrim($this->document_path, '/')) : null;
+    }
 
     protected $casts = [
         'rate_amount' => 'decimal:2',

@@ -39,9 +39,9 @@ function DetailRow({ label, value, mono, isLink, href }) {
   );
 }
 
-function DetailSection({ title, icon, children }) {
+function DetailSection({ title, icon, children, className = "", scrollable = false }) {
   return (
-    <div className="tx-detail-section">
+    <div className={`tx-detail-section ${scrollable ? "scrollable" : ""} ${className}`.trim()}>
       <div className="tx-section-header">
         <div className="tx-section-title-wrap">
           {icon && <span className="tx-section-icon">{icon}</span>}
@@ -412,6 +412,9 @@ export default function Taxis({ canManage = false }) {
 
                   {/* Specs Chips */}
                   <div className="tx-card-chips">
+                    {taxi.ownership && (
+                      <span className="tx-chip">🏷️ {taxi.ownership}</span>
+                    )}
                     {taxi.seating_capacity && (
                       <span className="tx-chip">👥 {taxi.seating_capacity} seats</span>
                     )}
@@ -473,6 +476,9 @@ export default function Taxis({ canManage = false }) {
                       <td>
                         <strong>{taxi.make_model || "—"}</strong>
                         {taxi.year_of_manufacture ? ` (${taxi.year_of_manufacture})` : ""}
+                        {taxi.ownership && (
+                          <div style={{ fontSize: "0.72rem", color: "#64748b" }}>🏷️ {taxi.ownership}</div>
+                        )}
                       </td>
                       <td>
                         <small style={{ color: "#64748b" }}>
@@ -580,11 +586,48 @@ export default function Taxis({ canManage = false }) {
                 </div>
               </div>
 
+              {/* Vehicle Photographs Gallery */}
+              {(panelTaxi.photo_front_url || panelTaxi.photo_front_path || panelTaxi.photo_back_url || panelTaxi.photo_back_path) && (
+                <DetailSection title="Vehicle Photographs" icon="📷">
+                  <div className="tx-drawer-photos-grid">
+                    {(panelTaxi.photo_front_url || panelTaxi.photo_front_path) && (
+                      <div
+                        className="tx-drawer-photo-card"
+                        onClick={() => window.open(panelTaxi.photo_front_url || `/storage/${String(panelTaxi.photo_front_path).replace(/^\/+/, "")}`, "_blank")}
+                        title="Click to view full front photo"
+                      >
+                        <img
+                          src={panelTaxi.photo_front_url || `/storage/${String(panelTaxi.photo_front_path).replace(/^\/+/, "")}`}
+                          alt="Front view"
+                          className="tx-drawer-photo-img"
+                        />
+                        <span className="tx-drawer-photo-label">Front View</span>
+                      </div>
+                    )}
+                    {(panelTaxi.photo_back_url || panelTaxi.photo_back_path) && (
+                      <div
+                        className="tx-drawer-photo-card"
+                        onClick={() => window.open(panelTaxi.photo_back_url || `/storage/${String(panelTaxi.photo_back_path).replace(/^\/+/, "")}`, "_blank")}
+                        title="Click to view full back photo"
+                      >
+                        <img
+                          src={panelTaxi.photo_back_url || `/storage/${String(panelTaxi.photo_back_path).replace(/^\/+/, "")}`}
+                          alt="Back view"
+                          className="tx-drawer-photo-img"
+                        />
+                        <span className="tx-drawer-photo-label">Rear / Back View</span>
+                      </div>
+                    )}
+                  </div>
+                </DetailSection>
+              )}
+
               {/* Technical Specifications */}
               <DetailSection title="Vehicle Specifications" icon="⚙️">
                 <DetailRow label="Make & Model" value={panelTaxi.make_model} />
                 <DetailRow label="Vehicle Type" value={panelTaxi.vehicle_type ? panelTaxi.vehicle_type.replace("_", " ").toUpperCase() : "—"} />
                 <DetailRow label="Year Model" value={panelTaxi.year_of_manufacture} />
+                <DetailRow label="Ownership" value={panelTaxi.ownership} />
                 <DetailRow label="Capacity" value={panelTaxi.seating_capacity ? `${panelTaxi.seating_capacity} Passengers` : null} />
                 <DetailRow label="Fuel Type" value={panelTaxi.fuel_type ? panelTaxi.fuel_type.toUpperCase() : null} />
                 <DetailRow
