@@ -31,11 +31,12 @@ class BookingTest extends TestCase
             'status' => 'confirmed',
         ]);
 
+        $bookingId = $response->json('id');
         $response->assertCreated()->assertJsonPath('customer_name', 'Test Customer');
         $this->assertDatabaseHas('bookings', ['customer_phone' => '+91 90000 00001', 'drop_location' => 'City Center']);
         $this->assertDatabaseHas('notifications', [
             'type' => 'booking_created',
-            'message' => 'Booking #1 for Test Customer from 01 Oct 2026 to 03 Oct 2026 is confirmed.',
+            'message' => "Booking #{$bookingId} for Test Customer from 01 Oct 2026 to 03 Oct 2026 is confirmed.",
         ]);
     }
 

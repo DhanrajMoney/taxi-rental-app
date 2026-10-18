@@ -100,7 +100,7 @@ export default function Drivers({ canManage = false }) {
     setLoading(true);
     setError("");
     try {
-      const params = {};
+      const params = { per_page: 150 };
       if (debouncedSearch) params.search = debouncedSearch;
       if (status) params.status = status;
       if (officeFilter) params.office_id = officeFilter;
@@ -352,7 +352,7 @@ export default function Drivers({ canManage = false }) {
           <input
             type="search"
             className="drv-search-input"
-            placeholder="Search driver by name, phone, or license..."
+            placeholder="Search driver by name, phone, emergency no, or license..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -563,6 +563,17 @@ export default function Drivers({ canManage = false }) {
                       <a href={`tel:${driver.phone}`} className="drv-contact-link">
                         {driver.phone}
                       </a>
+                      {driver.emergency_number && (
+                        <a
+                          href={`tel:${driver.emergency_number}`}
+                          className="drv-contact-link"
+                          style={{ color: "#dc2626", marginLeft: "0.35rem" }}
+                          title={`Emergency Contact: ${driver.emergency_number}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          🚨
+                        </a>
+                      )}
                     </div>
                   </div>
 
@@ -716,7 +727,14 @@ export default function Drivers({ canManage = false }) {
                         )}
                         <div>
                           <div className="drv-cell-name">{driver.name}</div>
-                          <div className="drv-cell-phone">{driver.phone}</div>
+                          <div className="drv-cell-phone">
+                            {driver.phone}
+                            {driver.emergency_number && (
+                              <span style={{ marginLeft: "0.4rem", fontSize: "0.75rem", color: "#dc2626", fontWeight: "500" }} title={`Emergency: ${driver.emergency_number}`}>
+                                🚨 {driver.emergency_number}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -881,6 +899,16 @@ export default function Drivers({ canManage = false }) {
                 <a href={`tel:${activeDriver.phone}`} className="drv-quick-btn">
                   <span>📞</span> Call
                 </a>
+                {activeDriver.emergency_number && (
+                  <a
+                    href={`tel:${activeDriver.emergency_number}`}
+                    className="drv-quick-btn"
+                    title={`Call Emergency Number: ${activeDriver.emergency_number}`}
+                    style={{ borderColor: "#fca5a5", color: "#b91c1c" }}
+                  >
+                    <span>🚨</span> SOS
+                  </a>
+                )}
                 {activeDriver.email ? (
                   <a href={`mailto:${activeDriver.email}`} className="drv-quick-btn">
                     <span>✉️</span> Email
@@ -1021,12 +1049,54 @@ export default function Drivers({ canManage = false }) {
                   </div>
                   <div className="drv-detail-row">
                     <span className="drv-detail-label">Phone</span>
-                    <span className="drv-detail-val">
+                    <span className="drv-detail-val" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                       <a href={`tel:${activeDriver.phone}`} style={{ color: "#0369a1" }}>
                         {activeDriver.phone}
                       </a>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(activeDriver.phone, "drawer-phone")}
+                        title="Copy phone number"
+                        style={{
+                          background: "none",
+                          border: "1px solid #cbd5e1",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          padding: "0.15rem 0.4rem",
+                          fontSize: "0.75rem",
+                          color: "#475569",
+                        }}
+                      >
+                        {copiedKey === "drawer-phone" ? "✓ Copied" : "Copy"}
+                      </button>
                     </span>
                   </div>
+                  {activeDriver.emergency_number && (
+                    <div className="drv-detail-row">
+                      <span className="drv-detail-label">Emergency No.</span>
+                      <span className="drv-detail-val" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <a href={`tel:${activeDriver.emergency_number}`} style={{ color: "#dc2626", fontWeight: "600" }}>
+                          🚨 {activeDriver.emergency_number}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(activeDriver.emergency_number, "drawer-em-phone")}
+                          title="Copy emergency number"
+                          style={{
+                            background: "none",
+                            border: "1px solid #fecaca",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            padding: "0.15rem 0.4rem",
+                            fontSize: "0.75rem",
+                            color: "#b91c1c",
+                          }}
+                        >
+                          {copiedKey === "drawer-em-phone" ? "✓ Copied" : "Copy"}
+                        </button>
+                      </span>
+                    </div>
+                  )}
                   {activeDriver.email && (
                     <div className="drv-detail-row">
                       <span className="drv-detail-label">Email</span>

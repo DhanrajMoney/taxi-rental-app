@@ -1,1 +1,0 @@
-import{r as o}from"./index-CVVa36M2.js";function c(e,t=300){const[u,n]=o.useState(e);return o.useEffect(()=>{const r=window.setTimeout(()=>n(e),t);return()=>window.clearTimeout(r)},[e,t]),u}export{c as u};

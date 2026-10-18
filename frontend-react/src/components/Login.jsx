@@ -67,6 +67,31 @@ export default function Login({ onLogin }) {
               <input type="password" minLength="8" required value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} />
             </label>
           ) : null}
+          {/* {isLogin && (
+            <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem", marginBottom: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+              <button
+                type="button"
+                style={{ fontSize: "0.75rem", padding: "0.25rem 0.6rem", border: "1px solid #cbd5e1", borderRadius: "6px", background: "#f8fafc", cursor: "pointer", color: "#334155" }}
+                onClick={() => { setEmail("admin@ridedesk.test"); setPassword("password"); }}
+              >
+                👤 Admin
+              </button>
+              <button
+                type="button"
+                style={{ fontSize: "0.75rem", padding: "0.25rem 0.6rem", border: "1px solid #cbd5e1", borderRadius: "6px", background: "#f8fafc", cursor: "pointer", color: "#334155" }}
+                onClick={() => { setEmail("staff@ridedesk.test"); setPassword("password"); }}
+              >
+                👥 Staff
+              </button>
+              <button
+                type="button"
+                style={{ fontSize: "0.75rem", padding: "0.25rem 0.6rem", border: "1px solid #cbd5e1", borderRadius: "6px", background: "#f8fafc", cursor: "pointer", color: "#334155" }}
+                onClick={() => { setEmail("driver@ridedesk.test"); setPassword("password"); }}
+              >
+                🚕 Driver
+              </button>
+            </div>
+          )} */}
           {error && <p className="error">{error}</p>}
           {message && <p className="success-message">{message}</p>}
           <button type="submit" className="primary" disabled={loading}>

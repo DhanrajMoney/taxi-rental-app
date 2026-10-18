@@ -11,7 +11,7 @@ class Driver extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'name', 'phone', 'email', 'gender', 'license_number', 'license_expiry',
+        'name', 'phone', 'emergency_number', 'email', 'gender', 'license_number', 'license_expiry',
         'insurance_expiry', 'document_expiry', 'required_document_expiry',
         'address', 'joining_date', 'status', 'office_id', 'photo_path', 'document_path', 'notes',
     ];

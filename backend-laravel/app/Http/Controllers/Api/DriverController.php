@@ -25,6 +25,7 @@ class DriverController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('emergency_number', 'like', "%{$search}%")
                     ->orWhere('license_number', 'like', "%{$search}%");
             });
         }
@@ -33,8 +34,10 @@ class DriverController extends Controller
             $query->where('status', $status);
         }
 
+        $perPage = min(max($request->integer('per_page', 15), 1), 250);
+
         return response()->json(
-            $query->latest()->paginate($request->integer('per_page', 15))
+            $query->latest()->paginate($perPage)
         );
     }
 

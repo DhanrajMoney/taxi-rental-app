@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 const EMPTY_DRIVER = {
   name: "",
   phone: "",
+  emergency_number: "",
   email: "",
   gender: "",
   license_number: "",
@@ -29,6 +30,7 @@ export default function DriverForm({
     return {
       name: initial.name || "",
       phone: initial.phone || "",
+      emergency_number: initial.emergency_number || "",
       email: initial.email || "",
       gender: initial.gender || "",
       license_number: initial.license_number || "",
@@ -62,6 +64,15 @@ export default function DriverForm({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onCancel]);
 
+  // Prevent memory leaks by revoking object URL when component unmounts or previewUrl changes
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   function handleChange(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
@@ -69,8 +80,16 @@ export default function DriverForm({
   function handlePhotoChange(e) {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setValidationError("Photo size exceeds 2MB limit. Please choose a smaller image.");
+        return;
+      }
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
       setPhoto(file);
       setPreviewUrl(URL.createObjectURL(file));
+      setValidationError("");
     }
   }
 
@@ -78,16 +97,42 @@ export default function DriverForm({
     e.preventDefault();
     setValidationError("");
 
-    if (!form.name.trim()) {
+    const cleanName = form.name.trim();
+    const cleanPhone = form.phone.trim();
+    const cleanEmergency = (form.emergency_number || "").trim();
+    const cleanEmail = (form.email || "").trim();
+    const cleanLicense = form.license_number.trim().toUpperCase();
+
+    if (!cleanName) {
       setValidationError("Driver full name is required.");
       return;
     }
-    if (!form.phone.trim()) {
-      setValidationError("Phone number is required.");
+    if (!cleanPhone) {
+      setValidationError("Contact phone number is required.");
       return;
     }
-    if (!form.license_number.trim()) {
-      setValidationError("License number is required.");
+    const phoneDigits = cleanPhone.replace(/\D/g, "");
+    if (phoneDigits.length < 7) {
+      setValidationError("Please enter a valid contact phone number (at least 7 digits).");
+      return;
+    }
+    if (cleanEmergency) {
+      const emergencyDigits = cleanEmergency.replace(/\D/g, "");
+      if (emergencyDigits.length < 7) {
+        setValidationError("Please enter a valid emergency phone number (at least 7 digits).");
+        return;
+      }
+      if (cleanEmergency === cleanPhone || (phoneDigits.length >= 7 && phoneDigits === emergencyDigits)) {
+        setValidationError("Emergency number must be different from the driver's primary phone.");
+        return;
+      }
+    }
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setValidationError("Please enter a valid email address.");
+      return;
+    }
+    if (!cleanLicense) {
+      setValidationError("Driving license number is required.");
       return;
     }
     if (!form.license_expiry) {
@@ -99,9 +144,20 @@ export default function DriverForm({
       return;
     }
 
+    const sanitizedForm = {
+      ...form,
+      name: cleanName,
+      phone: cleanPhone,
+      emergency_number: cleanEmergency,
+      email: cleanEmail,
+      license_number: cleanLicense,
+      address: (form.address || "").trim(),
+      notes: (form.notes || "").trim(),
+    };
+
     try {
       setSubmitting(true);
-      await onSubmit(form, photo);
+      await onSubmit(sanitizedForm, photo);
     } catch (err) {
       setValidationError(err?.response?.data?.message || err.message || "Failed to save driver.");
     } finally {
@@ -233,6 +289,18 @@ export default function DriverForm({
                   placeholder="e.g. +91 98765 43210"
                   value={form.phone}
                   onChange={(e) => handleChange("phone", e.target.value)}
+                />
+              </div>
+
+              {/* Emergency Number */}
+              <div className="drv-form-group">
+                <label className="drv-form-label">Emergency Number</label>
+                <input
+                  type="tel"
+                  className="drv-form-input"
+                  placeholder="e.g. +91 98765 43211"
+                  value={form.emergency_number}
+                  onChange={(e) => handleChange("emergency_number", e.target.value)}
                 />
               </div>
 
