@@ -1,0 +1,809 @@
+/* ══════════════════════════════════════════════════════════════════
+   TAXI FORM MODAL STYLES (taxi-form.css)
+   Dedicated styles for the Add / Edit Taxi Modal Form
+   Sections:
+   1. Modal Container & Overlay
+   2. Header & Live Summary Checklist Bar
+   3. Step / Section Navigation Tabs
+   4. Form Grid & Specialized Inputs
+   5. Vehicle Photographs (Front & Rear) Drag-and-Drop
+   6. Document Upload Card & Notes
+   7. Footer Navigation & Action Bar
+   8. Responsive Breakpoints
+══════════════════════════════════════════════════════════════════ */
+
+/* ──────────────────────────────────────────────
+   1. MODAL CONTAINER & OVERLAY
+────────────────────────────────────────────── */
+.tx-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 16px;
+  animation: txFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tx-modal-card {
+  background: var(--tx-surface, #ffffff);
+  width: 100%;
+  max-width: 860px;
+  border-radius: 18px;
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(226, 232, 240, 0.9);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: txSlideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 90vh;
+}
+
+/* ──────────────────────────────────────────────
+   2. HEADER & LIVE SUMMARY CHECKLIST BAR
+────────────────────────────────────────────── */
+.tx-modal-header {
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--tx-border, #e8edf2);
+  background: var(--tx-surface, #ffffff);
+}
+
+.tx-modal-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tx-modal-title {
+  font-size: 1.22rem;
+  font-weight: 800;
+  color: var(--tx-text-main, #0f172a);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tx-modal-subtitle {
+  font-size: 0.78rem;
+  color: var(--tx-text-muted, #64748b);
+  font-weight: 600;
+  margin: 0;
+}
+
+.tx-modal-summary-bar {
+  padding: 8px 24px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--tx-border, #e8edf2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tx-summary-bar-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-right: 4px;
+}
+
+.tx-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.16s ease;
+  background: #ffffff;
+}
+
+.tx-summary-chip:hover {
+  transform: translateY(-1px);
+}
+
+.tx-summary-chip.is-set {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+.tx-summary-chip.is-missing {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.tx-summary-chip.is-neutral {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+/* ──────────────────────────────────────────────
+   3. STEP & SECTION NAVIGATION TABS
+────────────────────────────────────────────── */
+.tx-tabs-container {
+  padding: 0 24px;
+  background: #ffffff;
+  border-bottom: 1.5px solid var(--tx-border, #e8edf2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tx-tabs-container::-webkit-scrollbar {
+  display: none;
+}
+
+.tx-nav-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.tx-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--tx-text-muted, #64748b);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.tx-nav-tab:hover {
+  background: #f8fafc;
+  color: var(--tx-navy, #153d4a);
+}
+
+.tx-nav-tab.active {
+  background: var(--tx-navy, #153d4a);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(21, 61, 74, 0.2);
+}
+
+.tx-nav-tab-badge {
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.tx-nav-tab.active .tx-nav-tab-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.tx-view-toggle {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.tx-view-toggle:hover {
+  border-color: var(--tx-navy, #153d4a);
+  color: var(--tx-navy, #153d4a);
+}
+
+.tx-form-alert {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 0.82rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: txFadeIn 0.2s ease;
+}
+
+/* ──────────────────────────────────────────────
+   4. FORM GRID & INPUT CONTROLS
+────────────────────────────────────────────── */
+.tx-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+.tx-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tx-modal-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.tx-modal-body::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 8px;
+}
+
+.tx-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 18px;
+}
+
+.tx-form-section-header {
+  grid-column: 1 / -1;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tx-navy, #153d4a);
+  padding-bottom: 6px;
+  border-bottom: 1.5px solid var(--tx-border, #e8edf2);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tx-form-section-desc {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: -6px 0 4px 0;
+}
+
+.tx-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tx-field-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.tx-field-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tx-field-input,
+.tx-field-select,
+.tx-field-textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 0.88rem;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.tx-field-input:focus,
+.tx-field-select:focus,
+.tx-field-textarea:focus {
+  outline: none;
+  border-color: var(--tx-navy, #153d4a);
+  box-shadow: 0 0 0 3px rgba(21, 61, 74, 0.12);
+}
+
+.tx-field-input.has-error {
+  border-color: #ef4444 !important;
+  background-color: #fff5f5;
+}
+
+.tx-field-note {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.tx-field-textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+/* Indian License Plate Visual Preview */
+.tx-plate-preview-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.tx-plate-box {
+  display: inline-flex;
+  align-items: center;
+  background: #ffffff;
+  border: 2px solid #0f172a;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  height: 38px;
+}
+
+.tx-plate-ind {
+  background: #0284c7;
+  color: #ffffff;
+  padding: 0 6px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  border-right: 1.5px solid #0f172a;
+}
+
+.tx-plate-text {
+  padding: 0 14px;
+  font-family: ui-monospace, 'JetBrains Mono', 'Fira Code', monospace;
+  font-weight: 900;
+  font-size: 1.05rem;
+  color: #0f172a;
+  letter-spacing: 0.12em;
+}
+
+/* Quick Select Suggestion Chips */
+.tx-quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.tx-chip-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tx-chip-btn:hover {
+  background: #f8fafc;
+  border-color: var(--tx-navy, #153d4a);
+  color: var(--tx-navy, #153d4a);
+}
+
+.tx-chip-btn.active {
+  background: var(--tx-navy, #153d4a);
+  border-color: var(--tx-navy, #153d4a);
+  color: #ffffff;
+}
+
+/* Vehicle Type Visual Card Selector */
+.tx-type-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.tx-type-card {
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 8px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.tx-type-card:hover {
+  border-color: var(--tx-navy, #153d4a);
+  transform: translateY(-1px);
+}
+
+.tx-type-card.selected {
+  border-color: var(--tx-navy, #153d4a);
+  background: rgba(21, 61, 74, 0.06);
+  box-shadow: 0 0 0 2px var(--tx-navy, #153d4a);
+}
+
+.tx-type-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.tx-type-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--tx-navy, #153d4a);
+}
+
+.tx-type-sub {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+/* ──────────────────────────────────────────────
+   5. VEHICLE PHOTOGRAPHS & DRAG-AND-DROP
+────────────────────────────────────────────── */
+.tx-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.tx-photo-upload-card {
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 14px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.18s ease;
+}
+
+.tx-photo-upload-card:hover {
+  border-color: var(--tx-navy, #153d4a);
+}
+
+.tx-photo-upload-card.is-dragging {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  transform: scale(1.01);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
+}
+
+.tx-photo-card-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tx-photo-card-tag {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--tx-navy, #153d4a);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tx-photo-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.tx-photo-badge.attached {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.tx-photo-preview-wrap {
+  width: 100%;
+  height: 150px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 1px solid #e8edf2;
+  cursor: pointer;
+}
+
+.tx-photo-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tx-photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #94a3b8;
+  padding: 12px;
+  text-align: center;
+}
+
+.tx-photo-placeholder-icon {
+  font-size: 2rem;
+}
+
+.tx-photo-placeholder-text {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.tx-photo-placeholder-hint {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.tx-photo-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.tx-photo-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  color: var(--tx-navy, #153d4a);
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tx-photo-upload-btn:hover {
+  background: #f8fafc;
+  border-color: var(--tx-navy, #153d4a);
+}
+
+.tx-photo-remove-btn {
+  background: none;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tx-photo-remove-btn:hover {
+  background: #fef2f2;
+}
+
+/* ──────────────────────────────────────────────
+   6. DOCUMENT UPLOAD CARD & REMARKS
+────────────────────────────────────────────── */
+.tx-doc-upload-card {
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tx-doc-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tx-doc-icon {
+  font-size: 1.8rem;
+}
+
+.tx-doc-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.tx-doc-sub {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.tx-doc-view-link {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--tx-navy, #153d4a);
+  text-decoration: underline;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.tx-doc-view-link:hover {
+  color: #0284c7;
+}
+
+/* ──────────────────────────────────────────────
+   7. MODAL FOOTER & ACTION BUTTONS
+────────────────────────────────────────────── */
+.tx-modal-footer {
+  padding: 14px 24px;
+  background: #ffffff;
+  border-top: 1px solid var(--tx-border, #e8edf2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.tx-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.tx-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-modal-cancel-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-modal-cancel-ghost:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.btn-modal-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--tx-navy, #153d4a);
+  background: transparent;
+  color: var(--tx-navy, #153d4a);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-modal-nav:hover {
+  background: #f8fafc;
+}
+
+/* ──────────────────────────────────────────────
+   8. RESPONSIVE BREAKPOINTS (MODAL SPECIFIC)
+────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .tx-form-grid,
+  .tx-photos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tx-type-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .tx-modal-card {
+    max-height: 94vh;
+    border-radius: 12px;
+  }
+
+  .tx-modal-header {
+    padding: 14px 18px;
+  }
+
+  .tx-modal-summary-bar {
+    padding: 6px 14px;
+    gap: 6px;
+  }
+
+  .tx-tabs-container {
+    padding: 0 14px;
+  }
+
+  .tx-nav-tab {
+    padding: 6px 10px;
+    font-size: 0.76rem;
+  }
+
+  .tx-modal-body {
+    padding: 16px 18px;
+    gap: 12px;
+  }
+
+  .tx-modal-footer {
+    padding: 12px 16px;
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .tx-footer-left {
+    justify-content: center;
+    width: 100%;
+    text-align: center;
+  }
+
+  .tx-footer-right {
+    width: 100%;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .tx-modal-footer button,
+  .btn-modal-cancel-ghost,
+  .btn-modal-nav,
+  .tx-btn-new {
+    width: 100%;
+    justify-content: center;
+  }
+}
+

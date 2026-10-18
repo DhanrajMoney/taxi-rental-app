@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
+import "../styles/taxi-form.css";
 
 const FIRST_VEHICLE_YEAR = 1990;
 const LAST_VEHICLE_YEAR = new Date().getFullYear() + 1;
