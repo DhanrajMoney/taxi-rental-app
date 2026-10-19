@@ -1,0 +1,317 @@
+/* ==========================================================================
+   User Management & User Form Styles
+   ========================================================================== */
+
+/* 1. Modal Overlay & Dialog */
+.usr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 30, 45, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+  padding: 20px;
+  animation: usrFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.usr-modal-card {
+  width: 600px;
+  max-width: 95vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 24px 50px rgba(15, 30, 45, 0.22);
+  border: 1px solid rgba(21, 61, 74, 0.12);
+  animation: usrSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 2. Modal Header */
+.usr-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid #edf2f7;
+  background: #fafcfc;
+}
+
+.usr-modal-header-text h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  color: #153d4a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.usr-modal-header-text p {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.usr-modal-close {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  color: #94a3b8;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.usr-modal-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* 3. Modal Form Body */
+.usr-modal-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* 4. Form Grid & Form Groups */
+.usr-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 20px;
+}
+
+.usr-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.usr-field-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.usr-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+}
+
+.usr-label .required-indicator {
+  color: #ef4444;
+  margin-left: 3px;
+}
+
+.usr-field-hint {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* 5. Inputs & Selects */
+.usr-input,
+.usr-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 14px;
+  color: #0f172a;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.usr-input:hover,
+.usr-select:hover {
+  border-color: #94a3b8;
+  background: #ffffff;
+}
+
+.usr-input:focus,
+.usr-select:focus {
+  outline: 0;
+  border-color: #153d4a;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(21, 61, 74, 0.12);
+}
+
+.usr-input:disabled,
+.usr-select:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  border-color: #e2e8f0;
+  cursor: not-allowed;
+}
+
+.usr-input.has-error,
+.usr-select.has-error {
+  border-color: #ef4444 !important;
+  background-color: #fff9f9;
+}
+
+.usr-input.has-error:focus,
+.usr-select.has-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+/* 6. Context Alert Banners */
+.usr-form-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  animation: usrFadeIn 0.2s ease;
+}
+
+.usr-self-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  color: #0369a1;
+  border-radius: 10px;
+  margin-bottom: 18px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.usr-role-note {
+  font-size: 11px;
+  color: #475569;
+  margin-top: 4px;
+  padding: 6px 10px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  display: block;
+}
+
+/* 7. Modal Actions Footer */
+.usr-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 28px;
+  border-top: 1px solid #edf2f7;
+  background: #fafcfc;
+}
+
+.btn-usr-cancel {
+  padding: 10px 20px;
+  background: #ffffff;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-usr-cancel:hover:not(:disabled) {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.btn-usr-save {
+  padding: 10px 24px;
+  background: #153d4a;
+  color: #ffffff;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(21, 61, 74, 0.22);
+  transition: all 0.2s ease;
+}
+
+.btn-usr-save:hover:not(:disabled) {
+  background: #0f2c36;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(21, 61, 74, 0.3);
+}
+
+.btn-usr-save:disabled,
+.btn-usr-cancel:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 8. Badges & Pagination */
+.badge-you {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 2px 7px;
+  border-radius: 4px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.user-pagination-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 0 0 10px 10px;
+  margin-top: -1px;
+}
+
+/* 9. Animations & Responsive */
+@keyframes usrFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes usrSlideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 640px) {
+  .usr-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .usr-modal-header {
+    padding: 18px 20px 14px;
+  }
+  .usr-modal-body {
+    padding: 18px 20px;
+  }
+  .usr-modal-actions {
+    padding: 14px 20px;
+  }
+}

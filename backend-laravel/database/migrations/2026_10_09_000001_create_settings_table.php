@@ -20,6 +20,7 @@ return new class extends Migration
         // Insert default initial settings
         $defaults = [
             ['key' => 'company_name', 'value' => 'Rent A Ride Desk', 'group' => 'general', 'description' => 'Business or company display name'],
+            ['key' => 'company_gst_number', 'value' => '27AADCR2345A1Z1', 'group' => 'general', 'description' => 'Company GST / Tax Identification Number (GSTIN)'],
             ['key' => 'company_email', 'value' => 'admin@ridedesk.test', 'group' => 'general', 'description' => 'Primary operational email address'],
             ['key' => 'company_phone', 'value' => '+91 98765 43210', 'group' => 'general', 'description' => 'Primary operational contact phone'],
             ['key' => 'currency_symbol', 'value' => '₹', 'group' => 'general', 'description' => 'Display currency symbol'],

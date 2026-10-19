@@ -12,7 +12,10 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::with(['office', 'driver']);
+        $query = User::with([
+            'office:id,name',
+            'driver:id,name,phone,license_number',
+        ]);
 
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
@@ -29,9 +32,24 @@ class UserController extends Controller
             $query->where('office_id', $officeId);
         }
 
-        return response()->json(
-            $query->orderBy('role')->latest()->paginate($request->integer('per_page', 15))
-        );
+        $paginated = $query->orderBy('role')->latest()->paginate($request->integer('per_page', 15));
+
+        // Single aggregation query for summary metrics
+        $metrics = User::selectRaw("
+            COUNT(*) as total_users,
+            COALESCE(SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END), 0) as admin_count,
+            COALESCE(SUM(CASE WHEN role = 'staff' THEN 1 ELSE 0 END), 0) as staff_count,
+            COALESCE(SUM(CASE WHEN role = 'driver' THEN 1 ELSE 0 END), 0) as driver_count
+        ")->first();
+
+        return response()->json(array_merge($paginated->toArray(), [
+            'meta' => [
+                'total_users' => (int) ($metrics->total_users ?? 0),
+                'admin_count' => (int) ($metrics->admin_count ?? 0),
+                'staff_count' => (int) ($metrics->staff_count ?? 0),
+                'driver_count' => (int) ($metrics->driver_count ?? 0),
+            ],
+        ]));
     }
 
     public function store(Request $request)
@@ -62,18 +80,31 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        // Guard against self-demotion
+        if ($user->id === auth()->id() && $request->has('role') && $request->input('role') !== 'admin') {
+            return response()->json(['message' => 'You cannot change your own role from administrator.'], 422);
+        }
+
+        // Guard against demoting the last remaining administrator
+        if ($user->role === 'admin' && $request->has('role') && $request->input('role') !== 'admin' && User::where('role', 'admin')->count() <= 1) {
+            return response()->json(['message' => 'Cannot demote the last administrator account.'], 422);
+        }
+
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'password' => ['sometimes', 'string', 'min:8'],
+            'password' => ['nullable', 'string', 'min:8'],
             'role' => ['sometimes', 'string', Rule::in(['admin', 'staff', 'driver'])],
             'driver_id' => ['nullable', 'exists:drivers,id', Rule::unique('users', 'driver_id')->ignore($user->id)],
             'office_id' => ['nullable', 'exists:offices,id'],
         ]);
 
-        if (isset($data['password'])) {
+        if (!empty($data['password'])) {
             $data['password'] = Hash::make($data['password']);
+        } else {
+            unset($data['password']);
         }
+
         if (($data['role'] ?? $user->role) !== 'driver') {
             $data['driver_id'] = null;
         }
@@ -87,6 +118,11 @@ class UserController extends Controller
     {
         if ($user->id === auth()->id()) {
             return response()->json(['message' => 'You cannot delete your own account.'], 422);
+        }
+
+        // Guard against deleting the last remaining administrator
+        if ($user->role === 'admin' && User::where('role', 'admin')->count() <= 1) {
+            return response()->json(['message' => 'Cannot remove the last administrator account.'], 422);
         }
 
         $user->delete();

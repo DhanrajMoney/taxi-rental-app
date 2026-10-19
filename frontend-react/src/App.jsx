@@ -329,7 +329,7 @@ export default function App() {
                           : tab === "offices" && !isDriver
                             ? <Offices userRole={role} />
                             : tab === "users" && isAdmin
-                              ? <Users canManage={isAdmin} />
+                              ? <Users canManage={isAdmin} currentUser={user} />
                               : tab === "import" && isAdmin
                                 ? <ImportData />
                                 : tab === "settings" && isAdmin

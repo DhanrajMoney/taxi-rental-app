@@ -90,9 +90,8 @@ class DashboardController extends Controller
         $completedThisMonth = (int) ($bookingMetrics->completed_month ?? 0);
         $revenueThisMonth = (float) ($bookingMetrics->revenue_month ?? 0);
 
-        // Fetch dashboard settings in a single batch query
-        $settingsMap = Setting::whereIn('key', ['document_expiry_alert_days', 'maintenance_alert_days', 'currency_symbol'])
-            ->pluck('value', 'key');
+        // Fetch dashboard settings from cache dictionary
+        $settingsMap = collect(Setting::getDictionary());
 
         $docThresholdDays = (int) ($settingsMap->get('document_expiry_alert_days') ?: 30);
         $threshold = now()->addDays($docThresholdDays)->toDateString();

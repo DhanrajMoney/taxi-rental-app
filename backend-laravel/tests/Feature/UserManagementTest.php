@@ -80,4 +80,82 @@ class UserManagementTest extends TestCase
             ])
             ->assertForbidden();
     }
+
+    public function test_admin_can_update_user_without_changing_password(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'name' => 'Old Name',
+            'password' => 'original-secure-password',
+        ]);
+
+        $originalHash = $staff->password;
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->putJson("/api/users/{$staff->id}", [
+                'name' => 'Updated Name',
+                'email' => $staff->email,
+                'role' => 'staff',
+                'password' => '', // blank password should not alter existing password
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('name', 'Updated Name');
+
+        $staff->refresh();
+        $this->assertEquals('Updated Name', $staff->name);
+        $this->assertEquals($originalHash, $staff->password);
+    }
+
+    public function test_admin_cannot_delete_their_own_account(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        User::factory()->create(['role' => 'admin']); // Ensure there is another admin
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->deleteJson("/api/users/{$admin->id}");
+
+        $response->assertStatus(422)
+            ->assertJsonPath('message', 'You cannot delete your own account.');
+
+        $this->assertDatabaseHas('users', ['id' => $admin->id]);
+    }
+
+    public function test_admin_cannot_demote_their_own_role(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        User::factory()->create(['role' => 'admin']); // Another admin exists
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->putJson("/api/users/{$admin->id}", [
+                'role' => 'staff',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('message', 'You cannot change your own role from administrator.');
+
+        $admin->refresh();
+        $this->assertEquals('admin', $admin->role);
+    }
+
+    public function test_cannot_delete_the_last_admin(): void
+    {
+        // Only 1 admin in the system
+        $admin = User::factory()->create(['role' => 'admin']);
+        $otherAdmin = User::factory()->create(['role' => 'admin']);
+
+        // Delete otherAdmin first
+        $this->actingAs($admin, 'sanctum')
+            ->deleteJson("/api/users/{$otherAdmin->id}")
+            ->assertOk();
+
+        // Now admin is the only admin, if another user could try to delete them or another token
+        $staff = User::factory()->create(['role' => 'staff']);
+        // If a request tried to delete the last admin:
+        $response = $this->actingAs($admin, 'sanctum')
+            ->deleteJson("/api/users/{$admin->id}");
+
+        $response->assertStatus(422);
+    }
 }
