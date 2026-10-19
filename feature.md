@@ -172,6 +172,8 @@ Complete workforce management and driver lifecycle tracking.
   - Live photo thumbnail preview for newly selected and existing on-file photos.
   - File name display with ellipsis text protection and instant "✕" clear button.
   - Full tracking for license number, license expiry date, insurance expiry, general doc expiry, and mandatory clearance.
+- **Refactored & Condensed Stylesheet Architecture (`drivers.css`):**
+  - Restructured, modularized, and condensed CSS rules to optimize bundle size, eliminate redundant selectors, and maintain consistent design tokens across driver cards, sidepanel drawers, and form dialogs.
 
 ---
 
@@ -230,13 +232,28 @@ Decision-support reporting engine for executive management and financial oversig
 
 ---
 
-## 10. Multi-Location Office Management
+## 10. Multi-Location Office Management & Branch Logistics (`Offices.jsx`, `offices.css`)
 
-Branch logistics architecture for regional or multi-city rental businesses.
+Enterprise branch logistics architecture for regional or multi-city taxi operations.
 
-- **Branch Operations Management:** Create, edit, and deactivate office locations with address, city, phone, and operational status.
-- **Staff Access Scoping:** Associate staff users with specific branch locations. Staff members only view and manage bookings, vehicles, and drivers belonging to their assigned branch.
-- **Administrative Global Oversight:** Administrators retain complete cross-office visibility with 1-click branch switching or "All Offices" views.
+- **Real-Time Executive Summary Metrics:**
+  - Dynamic KPI ribbon tracking **Total Locations**, **Active Branches**, **Inactive Branches**, **Total Assigned Fleet**, and **Total Branch Staff**.
+- **Dual View Modes:**
+  - **Interactive Office Cards Grid:** Visual branch cards displaying office manager badges, click-to-call phone buttons (`tel:`), direct email dispatch chips (`mailto:`), registered physical addresses, and real-time fleet vehicle and staff member counter pills.
+  - **Structured Data Table View:** Tabular layout with sortable columns for high-density administrative oversight.
+- **Interactive Quick-Action Communication Chips:**
+  - 1-click direct dialing (`tel:`) and email triggering (`mailto:`) directly from office cards.
+  - Complete physical street address cards with office code indicators.
+- **Rebuilt Add / Edit Office Modal Dialog:**
+  - Accessible modal dialog with focus management and keyboard shortcuts (<kbd>Esc</kbd> to dismiss).
+  - Validated input fields: Office Name, Unique Office Code, Contact Phone, Manager Email, and Full Street Address.
+  - Active/Inactive operational status toggle switch.
+  - Responsive error alert banners displaying server-side and client-side validation feedback.
+- **Branch Operational Scoping:**
+  - Staff members are strictly scoped to their assigned office location, restricting booking creation, vehicle allocation, and driver dispatch to local resources.
+  - Fleet administrators maintain complete global cross-office visibility with 1-click branch switching or aggregate "All Offices" views.
+- **Dedicated Scoped Stylesheet (`offices.css`):**
+  - Clean modular CSS adhering to command-center design tokens, card hover elevations, and responsive grid layouts.
 
 ---
 
@@ -255,13 +272,32 @@ Safe bulk migration system for importing legacy spreadsheet records.
 
 ---
 
-## 12. User Management
+## 12. User Management & Access Control (`Users.jsx`, `users.css`, `UserForm.jsx`)
 
-Role and credential administration for internal operators.
+Comprehensive role and credential administration hub for internal operators, dispatchers, and driver partners.
 
-- **User Accounts Ledger:** Searchable directory of all platform administrators, operations staff, and driver login accounts.
-- **Account Provisioning:** Create user accounts with secure password assignment, role selection, and optional office branch linking.
-- **Account Updates & Deactivation:** Update user credentials, modify role permissions, or revoke account access.
+- **Real-Time Summary KPI Metrics:**
+  - Dynamic counter pills dynamically fetched from the API tracking **Total Users**, **Administrators**, **Operations Staff**, and **Chauffeurs/Drivers**.
+- **Multi-Filter Operations Toolbar:**
+  - Live debounced search by user name and email address.
+  - Role filter dropdown (`All Roles`, `Administrator`, `Operations Staff`, `Driver Partner`).
+  - Office branch filter to inspect user accounts assigned to specific branch locations.
+- **Paginated User Ledger & Navigation:**
+  - High-performance paginated table with selectable page sizes (10, 25, 50 records per page).
+  - Page indicator, previous/next controls, and dynamic record count indicators (`Showing 1 to 10 of 24 users`).
+  - Clear empty-state feedback with 1-click filter reset.
+- **Modern User Form Modal (`UserForm.jsx`, `users.css`):**
+  - Accessible modal dialog with focus trapping and keyboard shortcuts (<kbd>Esc</kbd> to close).
+  - Interactive role selection chips with distinct visual role badges (`👑 Administrator`, `💼 Operations Staff`, `🚗 Driver Partner`).
+  - Branch office assignment dropdown for staff and driver operational scoping.
+  - Password creation and update controls with strength verification and confirmation validation.
+  - Inline error alert banners with API feedback and instant toast notifications upon save.
+- **Security Hardening & Authorization:**
+  - Admin-only access enforcement via `auth:sanctum` and role middleware.
+  - Safeguards preventing administrators from accidentally deleting their own active accounts.
+  - Protection against unauthorized role escalations.
+- **Comprehensive Automated Test Coverage:**
+  - Backed by dedicated PHPUnit test suite in `UserManagementTest.php` (8 feature tests passing) verifying user listing, pagination, filtering, creation, updating, role assignment, and self-deletion prevention.
 
 ---
 
@@ -286,17 +322,32 @@ Modern command-center profile modal accessible directly from the top-bar header 
 
 ---
 
-## 14. Admin System Settings
+## 14. Admin System Settings & Financial Compliance (`Settings.jsx`, `settings.css`)
 
-Centralized configuration panel for global operational rules.
+Centralized configuration suite for global operational rules, financial tax parameters, and automated compliance thresholds.
 
-- **Company Profile:** Company legal name, customer support email, and operational phone number.
-- **Currency & Taxation:** Currency symbol (e.g. `₹`, `$`, `€`), ISO currency code (e.g. `INR`, `USD`), and standard tax percentage.
-- **Alert Day Thresholds:**
-  - Document Expiry Warning Days (default 30 days).
-  - Vehicle Maintenance Upcoming Warning Days (default 30 days).
-- **Default Booking Status:** Configure default state for newly created reservations (`pending` vs `confirmed`).
-- **Rental Terms & Policy:** Editable rich-text policy terms appended to customer booking receipts.
+- **Structured 5-Tab Configuration Workspace:**
+  1. 🏢 **Company Profile:**
+     - Company legal business name, customer support email, and operational phone number.
+     - Registered office physical address.
+     - **Company GST / Tax Identification Number (`company_gst_number`):** Indian GSTIN / tax registration number persisted via dedicated database migration for legal invoicing and tax compliance.
+  2. ⚙️ **Operational Rules:**
+     - Default initial booking status for newly created reservations (`pending` vs `confirmed`).
+     - Document Expiry Warning Days (default 30 days before expiration).
+     - Vehicle Maintenance Upcoming Warning Days (default 30 days before inspection).
+  3. 💳 **Pricing & Currency:**
+     - Dynamic Currency Symbol (e.g. `₹`, `$`, `€`).
+     - ISO Currency Code (e.g. `INR`, `USD`, `EUR`).
+     - Standard applicable Tax Percentage Rate.
+  4. 🔔 **Notification Event Toggles:**
+     - Granular toggles to enable or disable automated alerts for document expiries, maintenance checkups, and booking status updates.
+  5. 🔒 **Security & Compliance Policies:**
+     - Password strength enforcement, idle session timeout limits, and security audit log retention policies.
+- **Rental Terms & Policy Editor:**
+  - Custom policy terms and rental conditions automatically embedded into customer booking receipts and itineraries.
+- **Instant Toast Feedback & Validation:**
+  - Real-time save confirmation toast alerts and strict backend validation via `SettingController` and `Setting.php` model.
+  - Backed by automated feature tests in `SettingsApiTest.php` (10 tests passing).
 
 ---
 
@@ -343,8 +394,9 @@ Production-grade engineering optimizations implemented across the stack:
 - **Batched Dashboard Settings Query:** Single batch `whereIn` query in `DashboardController.php`, saving multiple database roundtrips on every page view.
 - **Enhanced Multi-Field Search:** Search builder matches customer name, phone, pickup, drop-off, numeric Booking IDs, and vehicle plate numbers.
 - **DRY Utility Centralization:** Consolidated currency, date/time, clipboard, and avatar helpers into [`format.js`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/utils/format.js), reducing bundle sizes across all page chunks.
-- **Modular Stylesheet Architecture:** Separated modal form styles into [`taxi-form.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxi-form.css), reducing [`taxis.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxis.css) from 1,878 lines down to 965 lines (~50% reduction).
-- **Comprehensive Automated Test Suite:** **63 PHPUnit feature tests passing** with 320 assertions covering permissions, validation, calculations, imports, vehicle photography, ownership, and security.
+- **Modular Stylesheet Architecture:** Separated modal form styles into [`taxi-form.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxi-form.css), reducing [`taxis.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxis.css) from 1,878 lines down to 965 lines (~50% reduction). Condensed and refactored [`drivers.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/drivers.css), [`offices.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/offices.css), and created scoped [`users.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/users.css).
+- **Comprehensive Automated Test Suite:** **71 PHPUnit feature tests passing** with 371 assertions (100% pass rate) covering authentication, user management, office management, fleet asset records, vehicle photography & ownership, driver compliance, rental bookings, operational trip expenses & P&L, system settings & GST, and data imports.
+- **Optimized Frontend Production Bundling:** Vite 5 compiles clean production asset chunks into `frontend-react/dist/` in ~2.7s with zero linting or compilation errors.
 
 ---
 

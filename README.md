@@ -4,8 +4,8 @@
 
 RideDesk is an enterprise-grade taxi rental operations management system split into two independently runnable applications:
 
-- `backend-laravel/` - Laravel API, authentication, operational models, migrations, security validation, and feature tests (**63 tests, 320 assertions**).
-- `frontend-react/` - Modern React/Vite command-center dashboard for managing fleet taxis, drivers, bookings, offices, data imports, maintenance, documents, trip expenses, and settings.
+- `backend-laravel/` - Laravel API, authentication, operational models, migrations, security validation, and feature tests (**71 tests, 371 assertions**).
+- `frontend-react/` - Modern React/Vite command-center dashboard for managing fleet taxis, drivers, bookings, offices, user accounts, system configuration, data imports, maintenance, documents, trip expenses, and financial reports.
 
 ---
 
@@ -13,12 +13,12 @@ RideDesk is an enterprise-grade taxi rental operations management system split i
 
 - `backend-laravel/app/` contains API controllers, FormRequests, policies, and Eloquent models.
 - `backend-laravel/routes/api.php` defines the REST API endpoints.
-- `backend-laravel/database/migrations/` contains database migrations, including vehicle photography, ownership, and performance indexes.
-- `backend-laravel/tests/` contains backend unit and feature tests (**63 tests, 320 assertions**).
-- `frontend-react/src/pages/` contains the dashboard workspace pages.
-- `frontend-react/src/components/` contains reusable UI modals, drawers, and form components.
+- `backend-laravel/database/migrations/` contains database migrations, including vehicle photography, ownership, company GST registration, and performance indexes.
+- `backend-laravel/tests/` contains backend unit and feature tests (**71 tests, 371 assertions**).
+- `frontend-react/src/pages/` contains the dashboard workspace pages (`DashboardOverview.jsx`, `Bookings.jsx`, `Taxis.jsx`, `Drivers.jsx`, `Offices.jsx`, `Users.jsx`, `Settings.jsx`, `Maintenance.jsx`, `Reports.jsx`, `ImportData.jsx`).
+- `frontend-react/src/components/` contains reusable UI modals, drawers, and form components (`TaxiForm.jsx`, `DriverForm.jsx`, `UserForm.jsx`, `ExpenseModal.jsx`, `BookingExpensesTab.jsx`, `DocumentsPanel.jsx`, `ProfileModal.jsx`, `CancelBookingModal.jsx`, `NotificationDropdown.jsx`).
 - `frontend-react/src/api/` contains the Axios API client layer with interceptors.
-- `frontend-react/src/styles/` contains modular, scoped stylesheets matching the command-center design system (`taxis.css`, `taxi-form.css`, `bookings.css`, `booking-form.css`, etc.).
+- `frontend-react/src/styles/` contains modular, scoped stylesheets matching the command-center design system (`taxis.css`, `taxi-form.css`, `bookings.css`, `booking-form.css`, `drivers.css`, `offices.css`, `users.css`, `settings.css`, `maintenance.css`, `reports.css`, `expenses.css`, etc.).
 
 ---
 
@@ -40,7 +40,7 @@ php artisan serve
 
 The API will be available at `http://127.0.0.1:8000/api`.
 
-Running `php artisan migrate` applies all operational tables: `offices`, `customers`, `taxis` (including front/back photographs, ownership, and document attachments), `drivers`, `driver_documents`, `taxi_documents`, `bookings`, `booking_expenses`, `notifications`, `login_activities`, `import_logs`, `settings`, `maintenance_records`, and performance indexes.
+Running `php artisan migrate` applies all operational tables: `offices`, `customers`, `taxis` (including front/back photographs, ownership, and document attachments), `drivers`, `driver_documents`, `taxi_documents`, `bookings`, `booking_expenses`, `notifications`, `login_activities`, `import_logs`, `settings` (including company GST / tax identification number), `maintenance_records`, and performance indexes.
 
 ### Development Login Accounts
 
@@ -48,7 +48,7 @@ The database seeder creates these default accounts (password: `password`):
 
 | Email | Password | Role | Permissions |
 |---|---|---|---|
-| `admin@ridedesk.test` | `password` | Admin | Full operations & administration: taxis, drivers, bookings, offices, data imports, settings, users, reports |
+| `admin@ridedesk.test` | `password` | Admin | Full operations & administration: taxis, drivers, bookings, offices, users, system settings, data imports, and reports |
 | `staff@ridedesk.test` | `password` | Staff | View and manage branch taxis, drivers, bookings, maintenance, and customers |
 | `driver@ridedesk.test` | `password` | Driver | View assigned taxi, bookings, and personal trip details |
 
@@ -99,33 +99,59 @@ npm.cmd run dev
 - **Modular Stylesheet Architecture**: Split monolithic styling by creating dedicated [`taxi-form.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxi-form.css) for modal components, reducing [`taxis.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxis.css) from 1,878 lines down to 965 lines (~50% reduction).
 
 ### 2. Rental Bookings Workspace (`Bookings.jsx`, `booking-form.css`, `bookings.css`)
-- Interactive status KPI strip, multi-filter toolbar (search, status, office, date ranges), and a slide-in **Booking Detail Drawer** (440px wide, zero horizontal overflow) with 1-click clipboard copy of the Booking ID, structured tabbed views (Ride Details, Customer, Vehicle & Driver Assignment, Pricing Breakdown), and safe cancellation modal.
+- Interactive status KPI strip, multi-filter toolbar (search, status, office, date ranges), and a slide-in **Booking Detail Drawer** (440px wide, zero horizontal overflow) with 1-click clipboard copy of the Booking ID, structured tabbed views (Ride Details, Customer, Vehicle & Driver Assignment, Pricing Breakdown, Trip Expenses), and safe cancellation modal.
 
 ### 3. Driver Fleet Management (`Drivers.jsx`, `drivers.css`, `DriverForm.jsx`)
 - Real-time KPI summary strip (Total Fleet, Active, On Trip, On Leave, Doc Alerts), dual view modes with colorful hash-based avatar initials, eager loaded taxi assignments, slide-in **Driver Detail Drawer** with 1-click quick actions (Call, Email, Copy License), and rebuilt `DriverForm.jsx` with custom-styled upload button and live avatar preview.
+- Refactored code structure and condensed CSS architecture in [`drivers.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/drivers.css) for improved maintainability and faster rendering.
 
 ### 4. Operations Command Hub (`DashboardOverview.jsx`)
 - Live telemetry indicator, calendar date pill, multi-office branch selector, and 4 hero KPI metric cards with real-time fleet utilization progress bars. Includes upcoming dispatches feed, urgent action alerts for expiring documents, and 1-click dispatch shortcuts.
 
-### 5. Taxi Maintenance Desk (`Maintenance.jsx`)
+### 5. Taxi Maintenance Desk (`Maintenance.jsx`, `maintenance.css`)
 - Executive fleet upkeep header with dynamic KPI cards, overdue inspection warnings with 1-click vehicle filtering chips, and service work order modal with automated odometer pre-fills and invoice receipt uploads (PDF/JPG/PNG).
 
 ### 6. Ride & Trip Operational Expense Management (`BookingExpensesTab.jsx`, `ExpenseModal.jsx`, `expenses.css`)
 - Trip-level operational expense recording across 6 categories (Fuel, Tolls & FASTag, Parking, Driver Allowance, Border Permits, Incidentals), billable vs company-absorbed classification, driver reimbursement lifecycle (Pending Approval -> Approved -> Reimbursed / Rejected), secure receipt file uploads with strict MIME and 10MB checks, real-time Trip P&L summary hero cards, and synchronization with Executive Financial Reports.
 
-### 7. Executive Operational Reports (`Reports.jsx`)
+### 7. Executive Operational Reports (`Reports.jsx`, `reports.css`)
 - Financial P&L summary (Realized Revenue vs Maintenance Spend = Net Operating Margin), visual monthly dual-bar charts, fleet utilization gauges, driver activity metrics, and CSV / print-to-PDF exports.
 
-### 8. Multi-Location Office Setup (`Offices.jsx`)
-- Branch location management with staff scoping, enabling independent branch-level fleet management while maintaining cross-office visibility for admins.
+### 8. Multi-Location Office Setup & Branch Logistics (`Offices.jsx`, `offices.css`)
+- **Executive Branch Overview**: Real-time summary metrics bar displaying Total Locations, Active Branches, Inactive Branches, Total Assigned Fleet, and Total Branch Staff.
+- **Dual View Modes**: Interactive **Office Cards Grid** (showing manager tags, contact chips, physical addresses, and fleet/staff counters) and **Administrative Data Table**.
+- **Interactive Quick-Action Chips**: Direct phone dialing (`tel:`), direct email dispatch (`mailto:`), and full address detail cards.
+- **Rebuilt Office Modal Form**: Modern modal dialog with input validation for branch name, code, contact phone, manager email, and physical address, active/inactive toggle, and responsive error handling banners.
+- **Branch Operational Scoping**: Staff members are scoped to their assigned office location, while administrators maintain global cross-office visibility.
 
-### 9. Excel & CSV Data Import (`ImportData.jsx`)
+### 9. User Management & Access Control (`Users.jsx`, `users.css`, `UserForm.jsx`)
+- **Real-Time Summary Metrics**: Dynamic KPI counter pills tracking Total Users, Administrators, Operations Staff, and Chauffeurs/Drivers.
+- **Multi-Filter Operations Toolbar**: Live debounced search by name/email, role filtering dropdown (`All Roles`, `Admin`, `Staff`, `Driver`), and branch office filter.
+- **Paginated User Ledger**: Complete pagination controls with selectable page sizes (10, 25, 50 records per page), current page indicators, previous/next navigation buttons, and clear empty-state feedback.
+- **Modern User Form Modal (`UserForm.jsx`, `users.css`)**:
+  - Accessible modal dialog with focus management and keyboard shortcuts (<kbd>Esc</kbd> to close).
+  - Role selection chips (`Admin`, `Staff`, `Driver`) with distinct visual role badges.
+  - Branch office assignment dropdown for staff and driver scoping.
+  - Password policy validation and edit mode password change protections.
+  - Inline error alert banners with API feedback and instant toast notifications on save.
+- **Security & Authorization**: Admin-only access with safeguards against self-deletion and unauthorized role escalations.
+
+### 10. Admin System Settings & Financial Compliance (`Settings.jsx`, `settings.css`)
+- **Comprehensive 5-Tab Configuration Workspace**:
+  1. 🏢 *Company Profile*: Company name, support email, phone hotline, registered address, and **Company GST / Tax Identification Number (`company_gst_number`)** for legal invoicing and tax compliance.
+  2. ⚙️ *Operational Rules*: Default initial booking status (`pending` vs `confirmed`), document expiry warning day thresholds, and fleet maintenance alert thresholds.
+  3. 💳 *Pricing & Currency*: Currency symbol, currency code (ISO 4217), and standard tax percentage rate.
+  4. 🔔 *Notifications*: Granular event toggles for document compliance alerts, maintenance due dates, and booking status updates.
+  5. 🔒 *Security & Compliance*: Password strength rules, session timeout settings, and audit log policies.
+- **Instant Toast Feedback**: Real-time save confirmation toast alerts and strict backend validation via `SettingController`.
+
+### 11. Excel & CSV Data Import (`ImportData.jsx`)
 - Downloadable sample templates and dependency-ordered import pipeline (customers $\rightarrow$ taxis $\rightarrow$ drivers $\rightarrow$ bookings) with pre-validation previews, error reporting, and audit logs.
 
-### 10. Account Profile Hub (`ProfileModal.jsx`, `profile-modal.css`)
+### 12. Account Profile Hub (`ProfileModal.jsx`, `profile-modal.css`)
 - Command-center profile view with initials avatar, role badge, assigned branch office, editable personal details (Name & Email), password update with confirmation check, and security audit log of past login sessions.
 
-### 11. Security Hardening & Document Compliance
+### 13. Security Hardening & Document Compliance
 - Strict MIME type validation (`mimes:pdf,jpg,jpeg,png,webp`) and file size limits across driver documents, vehicle RC papers, taxi photos, and expense receipts. Automated 30-day expiration alerts for licenses and permits.
 
 ---
@@ -137,10 +163,23 @@ npm.cmd run dev
 Run all feature and unit tests from `backend-laravel`:
 
 ```bash
+cd backend-laravel
 php vendor/bin/phpunit -c phpunit.xml
 ```
 
-*Result: **63 tests passing**, 320 assertions.*
+*Result: **71 tests passing**, 371 assertions (100% pass rate).*
+
+Test suites cover:
+- Authentication & Profile Management (`AuthApiTest.php`, `ProfileApiTest.php`)
+- Fleet Asset Records & Photography (`TaxiApiTest.php`, `TaxiPhotoAndOwnershipTest.php`)
+- Driver Management & Compliance (`DriverApiTest.php`, `DriverDocumentUploadTest.php`)
+- Rental Bookings & Lifecycle (`BookingTest.php`)
+- Operational Trip Expenses & P&L (`BookingExpenseTest.php`)
+- Office Management & Multi-Branch Scoping (`OfficeApiTest.php`)
+- User Management & Permissions (`UserManagementTest.php`)
+- System Settings & GST Configuration (`SettingsApiTest.php`)
+- Data Import Pipeline (`ImportDataTest.php`)
+- Fleet Maintenance & Reports (`MaintenanceTest.php`, `ReportApiTest.php`)
 
 ### Frontend Production Build (Vite)
 
@@ -151,7 +190,7 @@ cd frontend-react
 npm run build
 ```
 
-*Build output: Zero lint/compilation errors, clean asset chunks generated in `frontend-react/dist/` in ~3.2s.*
+*Build output: Zero lint/compilation errors, clean asset chunks generated in `frontend-react/dist/` in ~2.7s.*
 
 ---
 
@@ -177,4 +216,5 @@ To build and package a distribution-ready release ZIP:
   ```bash
   chmod +x ./installation/package-release.sh
   ./installation/package-release.sh
+  ```
   ```

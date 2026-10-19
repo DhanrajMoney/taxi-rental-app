@@ -1,6 +1,6 @@
 # Rent A Ride Desk Feature Plan
 
-> Last reviewed: 2026-10-18
+> Last reviewed: 2026-10-19
 
 ## Goal
 Build a complete taxi rental operations dashboard for admins, staff, and drivers.
@@ -96,19 +96,20 @@ Build a complete taxi rental operations dashboard for admins, staff, and drivers
 
 **Done when:** Users can inspect their account credentials, edit personal details, change passwords, review security logs, and receive critical fleet notifications.
 
-## Phase 8: Multi-Location Office Setup
+## Phase 8: Multi-Location Office Setup & Operations UI Rebuild
 **Priority:** High
 
-**Status:** Implemented in the Laravel API and React workspace (`Offices.jsx`). Admins can create, update, view, and deactivate office locations. Taxis, drivers, users, and bookings are associated with an office location, and staff operational scoping is enforced based on branch assignment.
+**Status:** Redesigned & Rebuilt in the Laravel API (`OfficeController.php`, `OfficeApiTest.php`) and React workspace (`Offices.jsx`, `offices.css`). Admins can create, update, view, and toggle active/inactive status of branch locations. Features an executive branch overview with live KPI metric strip (Total Locations, Active Branches, Inactive Branches, Total Assigned Fleet, Branch Staff), dual view modes (Interactive Office Cards Grid with manager badges, contact chips, address cards, fleet counters vs Administrative Data Table), 1-click action shortcuts (direct call `tel:`, email `mailto:`), and a modernized Add/Edit Office Modal Dialog with comprehensive form validation and responsive error alert banners. Staff scoping is strictly enforced based on branch assignment.
 
-- Allow admins to create, update, view, and deactivate office locations with a name, address, contact details, and status.
-- Assign staff users to one or more office locations and let admins manage those assignments.
-- Associate taxis, drivers, and bookings with an office location so daily operations can be managed by branch.
-- Let staff view and manage records for their assigned location(s); admins can view and manage all locations.
-- Add an office/location filter to relevant lists and dashboard summaries, with a clear all-locations view for admins.
-- Validate that new bookings and assigned resources belong to a permitted location, while preserving cross-location visibility for admins.
+- Real-time executive summary metrics: Total Locations, Active, Inactive, Fleet Size, and Branch Staff.
+- Dual view toggle: Visual Office Cards Grid vs Administrative Data Table.
+- 1-click interactive communication chips for instant phone calls and email dispatches.
+- Rebuilt Add/Edit Office modal with phone/email validation, active status toggle, and error handling banners.
+- Dedicated, scoped styling architecture in `offices.css`.
+- Branch operational scoping: staff manage only assigned branch operations; admins retain global visibility.
+- Filter operations, taxis, drivers, and bookings by branch office location across all workspaces.
 
-**Done when:** Admins can set up and manage multiple offices, and users see or manage operational records according to their location access.
+**Done when:** Admins can set up, manage, and monitor multiple offices with real-time metrics and a modern card/table interface, while staff users operate securely within their assigned branch locations.
 
 ## Phase 9: Excel and CSV Data Import
 **Priority:** High
@@ -142,17 +143,20 @@ Build a complete taxi rental operations dashboard for admins, staff, and drivers
 
 **Done when:** Staff can create daily- and per-km-priced taxis, quote bookings, and finalize charges accurately when trips complete.
 
-## Phase 11: Admin System Settings
+## Phase 11: Admin System Settings & Financial Compliance (GST)
+**Priority:** High
 
-**Status:** Implemented in the Laravel API (`SettingController`) and React dashboard (`Settings.jsx`). Admins can view and update system configurations including company details, currency formats, tax percentages, document and maintenance alert day thresholds, and rental terms & conditions.
+**Status:** Enhanced & Rebuilt in the Laravel API (migration `2026_10_19_000001_add_company_gst_number_to_settings.php`, `Setting.php`, `SettingController.php`, `SettingsApiTest.php`) and React dashboard (`Settings.jsx`, `settings.css`). Admins can manage system configurations across 5 dedicated categories: Company Profile (with registered address and Indian Tax/GST Identification Number `company_gst_number`), Operational Rules (initial booking status, document & maintenance warning day thresholds), Pricing & Currency (currency code/symbol, tax rate), Notifications (compliance, maintenance, and booking alert toggles), and Security & Compliance (password rules, session timeouts, audit policies). Backed by instant toast feedback and strict backend validation (10 tests passing).
 
-- Company Name, Support Email, and Support Phone configuration.
-- Currency Symbol, Currency Code, and Tax Percentage.
-- Document Expiry and Maintenance Alert Warning Day Thresholds.
-- Default Initial Booking Status.
+- Company Profile: Name, Support Email, Phone, Address, and **Company GST / Tax Identification Number (`company_gst_number`)**.
+- Currency formatting (Symbol, ISO Code) and standard Tax Percentage Rate.
+- Operational Rules: Document Expiry and Maintenance Alert Warning Day Thresholds (30 days default).
+- Default Initial Booking Status (`pending` vs `confirmed`).
+- Notification Event Toggles: Turn automated alerts ON/OFF for compliance expiries, maintenance checkups, and dispatch updates.
+- Security Policies: Session timeout duration, password complexity enforcement, and audit logs.
 - Rental Terms and Conditions Policy Text.
 
-**Done when:** Admins can customize application defaults, thresholds, and company details directly from the dashboard settings area.
+**Done when:** Admins can configure enterprise defaults, compliance thresholds, company tax registration (GSTIN), and operational policies directly from a unified, tabbed settings interface with full API persistence.
 
 ## Phase 12: Production Deployment & Packaging Automation
 **Priority:** High
@@ -207,7 +211,7 @@ Build a complete taxi rental operations dashboard for admins, staff, and drivers
 - Eager loaded taxi relationship displaying vehicle plates and make/model directly on driver cards.
 - Slide-in Driver Detail Drawer with driver avatar hero, quick actions (Call, Email, Copy License), assigned taxi details, compliance countdowns, and attached document records.
 - Modern `DriverForm.jsx` modal dialog with custom-styled upload button (`.drv-file-btn`), image preview, and filename feedback.
-- Restructured and consolidated `drivers.css` matching the command-center design system.
+- Restructured, modularized, and condensed `drivers.css` to optimize bundle size, eliminate duplicate selectors, and maintain cohesive design tokens across driver cards, detail sidepanels, and modal components.
 
 **Done when:** Fleet managers can inspect driver duty status, track compliance health, view assigned vehicles, and register/edit drivers with modern file upload and profile workflows.
 
@@ -392,6 +396,36 @@ Build a complete taxi rental operations dashboard for admins, staff, and drivers
 
 **Done when:** Fleet managers can upload front and rear photos, assign vehicle ownership, register/edit taxis without missing any fields through a tabbed zero-scroll form with live completeness checks, and inspect photos in the right slide-in detail drawer.
 
+## Phase 20: User Management, Access Control & Pagination Rebuild
+**Priority:** High
+
+**Status:** Completed in Laravel 11 API (`UserController.php`, `UserManagementTest.php`) and React frontend (`Users.jsx`, `users.css`, `UserForm.jsx`). Rebuilt the User Management workspace into a high-performance administration hub featuring dynamic KPI summary cards, a multi-criteria filtering toolbar, a paginated data table with customizable page sizes, and a modern modal dialog for account creation and editing.
+
+- **1. Dynamic KPI Summary Metrics:**
+  - Real-time counter pills showing Total Users, Administrators, Operations Staff, and Chauffeurs/Drivers dynamically fetched from the API.
+- **2. Multi-Filter Operations Toolbar:**
+  - Live debounced search by user name and email address.
+  - Role filter dropdown (`All Roles`, `Administrator`, `Operations Staff`, `Driver Partner`).
+  - Office branch filter to inspect user accounts assigned to specific locations.
+- **3. Paginated User Ledger & Navigation:**
+  - Dynamic page size options (10, 25, 50 rows per page) with responsive footer navigation.
+  - Page indicator and previous/next jump controls.
+  - Clear empty-state feedback with 1-click filter reset.
+- **4. Rebuilt User Form Modal (`UserForm.jsx`, `users.css`):**
+  - Accessible modal dialog with focus trapping and keyboard dismissal (<kbd>Esc</kbd>).
+  - Role selection chips with distinctive visual badges (`Admin`, `Staff`, `Driver`).
+  - Branch office assignment dropdown for staff and driver operational scoping.
+  - Password creation and update controls with strength verification and confirmation validation.
+  - Inline error alert banners with API feedback and instant toast notifications on save.
+- **5. Security Hardening & Authorization:**
+  - Admin-only access enforcement via `auth:sanctum` and role middleware.
+  - Safeguards preventing administrators from accidentally deleting their own active accounts.
+  - Protection against unauthorized role escalation.
+- **6. Quality Assurance & Automated Testing:**
+  - Automated PHPUnit test suite in `UserManagementTest.php` (8 tests passing) verifying user listing, pagination, filtering, creation, updating, role assignment, and self-deletion prevention.
+
+**Done when:** Fleet administrators can efficiently manage user credentials, assign roles and branch offices, search and paginate through user records, and maintain system security with dedicated test coverage.
+
 ## Technical Checklist
 
 - Current UI app version: `1.6.0`.
@@ -406,4 +440,4 @@ Build a complete taxi rental operations dashboard for admins, staff, and drivers
 - Keep date formatting consistent across all React tables with the shared formatter in `frontend-react/src/utils/formatDate.js`.
 - Run `php artisan test` and `npm run build` before releasing changes.
 - Database optimized: applied performance index migration (`2026_10_11_000001_optimize_performance_indexes.php`) and executed `OPTIMIZE TABLE` & `ANALYZE TABLE` across all MySQL tables.
-- Latest verification on 2026-10-18: all 63 Laravel tests pass with 320 assertions, Playwright E2E tests pass, and the Vite production build succeeds cleanly.
+- Latest verification on 2026-10-19: all 71 Laravel tests pass with 371 assertions (100% pass rate), Playwright E2E tests configured, and the Vite production build succeeds cleanly in ~2.7s.
