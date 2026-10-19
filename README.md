@@ -48,7 +48,7 @@ The database seeder creates these default accounts (password: `password`):
 
 | Email | Password | Role | Permissions |
 |---|---|---|---|
-| `admin@ridedesk.test` | `password` | Admin | Full operations & administration: taxis, drivers, bookings, offices, users, system settings, data imports, and reports |
+ Admin | Full operations & administration: taxis, drivers, bookings, offices, users, system settings, data imports, and reports |
 | `staff@ridedesk.test` | `password` | Staff | View and manage branch taxis, drivers, bookings, maintenance, and customers |
 | `driver@ridedesk.test` | `password` | Driver | View assigned taxi, bookings, and personal trip details |
 
