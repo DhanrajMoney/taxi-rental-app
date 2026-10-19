@@ -14,10 +14,22 @@ export default function Offices({ userRole }) {
   const [viewMode, setViewMode] = useState("cards"); // "cards" or "table"
   const [form, setForm] = useState(null); // null or office object
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
     loadOffices();
   }, [debouncedSearch]);
+
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape" && form && !saving) {
+        setForm(null);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [form, saving]);
 
   function loadOffices() {
     setLoading(true);
@@ -30,22 +42,22 @@ export default function Offices({ userRole }) {
 
   function handleSave(e) {
     e.preventDefault();
-    setError("");
-    if (isEditing) {
-      OfficeAPI.update(form.id, form)
-        .then(() => {
-          setForm(null);
-          loadOffices();
-        })
-        .catch((err) => setError(err.response?.data?.message || "Failed to update office."));
-    } else {
-      OfficeAPI.create(form)
-        .then(() => {
-          setForm(null);
-          loadOffices();
-        })
-        .catch((err) => setError(err.response?.data?.message || "Failed to create office."));
-    }
+    setFormError("");
+    setSaving(true);
+    const request = isEditing
+      ? OfficeAPI.update(form.id, form)
+      : OfficeAPI.create(form);
+
+    request
+      .then(() => {
+        setForm(null);
+        setFormError("");
+        loadOffices();
+      })
+      .catch((err) => {
+        setFormError(err.response?.data?.message || `Failed to ${isEditing ? "update" : "create"} office.`);
+      })
+      .finally(() => setSaving(false));
   }
 
   function handleDelete(id) {
@@ -67,7 +79,7 @@ export default function Offices({ userRole }) {
           <p className="description">Manage multi-location office branches, contact details, and branch operational scoping.</p>
         </div>
         {canManage && (
-          <button className="primary" onClick={() => { setForm(EMPTY); setIsEditing(false); }}>
+          <button className="primary" onClick={() => { setForm(EMPTY); setIsEditing(false); setFormError(""); }}>
             + Add Branch Location
           </button>
         )}
@@ -134,89 +146,156 @@ export default function Offices({ userRole }) {
 
       {/* Add / Edit Office Modal Overlay */}
       {form && canManage && (
-        <div className="branch-modal-overlay">
-          <div className="branch-modal-card">
-            <div className="branch-form-header">
-              <div className="branch-form-header-title">
-                <span className="branch-form-header-icon">🏛</span>
+        <div className="branch-modal-overlay" onClick={() => !saving && setForm(null)}>
+          <div className="branch-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="branch-modal-header">
+              <div className="branch-modal-header-title">
+                <span className="branch-modal-header-icon">🏛</span>
                 <div>
                   <h3>{isEditing ? "Edit Office Branch" : "Add New Office Branch"}</h3>
-                  <p>Enter branch location details, phone, email, and operational status.</p>
+                  <p>Configure branch details, contact info, and booking availability.</p>
                 </div>
               </div>
               <button
                 type="button"
-                className="branch-close-btn"
+                className="branch-modal-close"
                 onClick={() => setForm(null)}
                 title="Close"
+                disabled={saving}
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSave}>
-              <div className="settings-grid">
-                <div className="field-group">
-                  <label>🏢 Branch Name</label>
-                  <input
-                    required
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="e.g. Downtown Central"
-                  />
-                  <span className="field-hint">Primary display name for this location.</span>
-                </div>
+            <form onSubmit={handleSave} className="branch-modal-form">
+              <div className="branch-modal-body">
+                {formError && (
+                  <div className="branch-form-error" role="alert">
+                    <span>⚠️</span>
+                    <span>{formError}</span>
+                  </div>
+                )}
 
-                <div className="field-group">
-                  <label>📞 Phone Number</label>
-                  <input
-                    value={form.phone || ""}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    placeholder="+91 98765 00000"
-                  />
-                  <span className="field-hint">Branch phone contact number.</span>
-                </div>
+                <div className="branch-form-grid">
+                  <div className="branch-field-group">
+                    <label className="branch-label">
+                      <span>Branch Name</span>
+                      <span className="required-indicator">*</span>
+                    </label>
+                    <div className="branch-input-wrapper">
+                      <span className="branch-input-icon">🏢</span>
+                      <input
+                        required
+                        className="branch-input"
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        placeholder="e.g. Downtown Central"
+                        disabled={saving}
+                      />
+                    </div>
+                    <span className="branch-field-hint">Primary name used across dispatches and fleet reports.</span>
+                  </div>
 
-                <div className="field-group">
-                  <label>✉️ Email Address</label>
-                  <input
-                    type="email"
-                    value={form.email || ""}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    placeholder="branch@ridedesk.test"
-                  />
-                  <span className="field-hint">Official email for this branch.</span>
-                </div>
+                  <div className="branch-field-group">
+                    <label className="branch-label">
+                      <span>Operational Status</span>
+                      <span className="required-indicator">*</span>
+                    </label>
+                    <div className="branch-input-wrapper">
+                      <span className="branch-input-icon">⚡</span>
+                      <select
+                        className="branch-select"
+                        value={form.status || "active"}
+                        onChange={(e) => setForm({ ...form, status: e.target.value })}
+                        disabled={saving}
+                      >
+                        <option value="active">Active (Operational)</option>
+                        <option value="inactive">Inactive (Deactivated)</option>
+                      </select>
+                    </div>
+                    <span className="branch-field-hint">
+                      {form.status === "inactive"
+                        ? "⚠️ Inactive branches cannot be assigned to new bookings."
+                        : "Ready for trip dispatching and vehicle allocations."}
+                    </span>
+                  </div>
 
-                <div className="field-group">
-                  <label>Operational Status</label>
-                  <select
-                    value={form.status || "active"}
-                    onChange={(e) => setForm({ ...form, status: e.target.value })}
-                  >
-                    <option value="active">Active (Operational)</option>
-                    <option value="inactive">Inactive (Deactivated)</option>
-                  </select>
-                  <span className="field-hint">Inactive locations are hidden from booking creation.</span>
+                  <div className="branch-field-group">
+                    <label className="branch-label">
+                      <span>Phone Number</span>
+                    </label>
+                    <div className="branch-input-wrapper">
+                      <span className="branch-input-icon">📞</span>
+                      <input
+                        type="tel"
+                        className="branch-input"
+                        value={form.phone || ""}
+                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        placeholder="+91 98765 00000"
+                        disabled={saving}
+                      />
+                    </div>
+                    <span className="branch-field-hint">Direct branch contact line for operations.</span>
+                  </div>
+
+                  <div className="branch-field-group">
+                    <label className="branch-label">
+                      <span>Email Address</span>
+                    </label>
+                    <div className="branch-input-wrapper">
+                      <span className="branch-input-icon">✉️</span>
+                      <input
+                        type="email"
+                        className="branch-input"
+                        value={form.email || ""}
+                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        placeholder="branch@ridedesk.test"
+                        disabled={saving}
+                      />
+                    </div>
+                    <span className="branch-field-hint">Official branch email for dispatch notices.</span>
+                  </div>
+
+                  <div className="branch-field-group full-width">
+                    <label className="branch-label">
+                      <span>Full Location Address</span>
+                    </label>
+                    <div className="branch-input-wrapper">
+                      <textarea
+                        rows="3"
+                        className="branch-textarea"
+                        value={form.address || ""}
+                        onChange={(e) => setForm({ ...form, address: e.target.value })}
+                        placeholder="Enter street, city, landmark, and postal code..."
+                        disabled={saving}
+                      />
+                    </div>
+                    <span className="branch-field-hint">Physical dispatch lot address and pickup depot.</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="field-group" style={{ marginTop: "18px" }}>
-                <label>📍 Full Location Address</label>
-                <textarea
-                  rows="3"
-                  value={form.address || ""}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  placeholder="Enter street, city, landmark, and postal code..."
-                />
-              </div>
-
-              <div className="settings-actions" style={{ marginTop: "24px" }}>
-                <button type="button" className="button secondary" onClick={() => setForm(null)}>
+              <div className="branch-modal-footer">
+                <button
+                  type="button"
+                  className="branch-btn branch-btn-secondary"
+                  onClick={() => setForm(null)}
+                  disabled={saving}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary">
-                  {isEditing ? "💾 Save Branch Changes" : "🏛 Create Office Branch"}
+                <button
+                  type="submit"
+                  className="branch-btn branch-btn-primary"
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <>⏳ Saving...</>
+                  ) : isEditing ? (
+                    <>💾 Save Branch Changes</>
+                  ) : (
+                    <>🏛 Create Office Branch</>
+                  )}
                 </button>
               </div>
             </form>
@@ -268,7 +347,7 @@ export default function Offices({ userRole }) {
 
               {canManage && (
                 <div className="office-card-footer">
-                  <button type="button" className="secondary" onClick={() => { setForm(office); setIsEditing(true); }}>
+                  <button type="button" className="secondary" onClick={() => { setForm(office); setIsEditing(true); setFormError(""); }}>
                     Edit
                   </button>
                   <button type="button" className="danger" onClick={() => handleDelete(office.id)}>
@@ -316,7 +395,7 @@ export default function Offices({ userRole }) {
                   </td>
                   {canManage && (
                     <td>
-                      <button type="button" className="secondary" onClick={() => { setForm(office); setIsEditing(true); }}>
+                      <button type="button" className="secondary" onClick={() => { setForm(office); setIsEditing(true); setFormError(""); }}>
                         Edit
                       </button>
                       {" "}
