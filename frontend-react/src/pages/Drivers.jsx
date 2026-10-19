@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { DriverAPI, OfficeAPI } from "../api/client.js";
+import { DriverAPI, OfficeAPI, DriverDocumentAPI } from "../api/client.js";
 import DriverForm from "../components/DriverForm.jsx";
 import useDebouncedValue from "../hooks/useDebouncedValue.js";
 import { formatDate, getAvatarColor, getInitials, copyToClipboard } from "../utils/format.js";
@@ -11,6 +11,37 @@ const STATUS_META = {
   on_leave: { color: "#d97706", bg: "#fff7ed", border: "#fed7aa", label: "On Leave", icon: "🏖️" },
   inactive: { color: "#dc2626", bg: "#fef2f2", border: "#fecaca", label: "Inactive", icon: "⛔" },
 };
+
+function getTenureText(joiningDate) {
+  if (!joiningDate) return null;
+  const join = new Date(joiningDate);
+  const now = new Date();
+  const diffMonths = (now.getFullYear() - join.getFullYear()) * 12 + (now.getMonth() - join.getMonth());
+  if (diffMonths < 1) return "Joined recently";
+  if (diffMonths < 12) return `${diffMonths} mo${diffMonths > 1 ? "s" : ""} with fleet`;
+  const years = Math.floor(diffMonths / 12);
+  const remMonths = diffMonths % 12;
+  return `${years} yr${years > 1 ? "s" : ""}${remMonths > 0 ? ` ${remMonths} mo` : ""} with fleet`;
+}
+
+function getExpiryCountdown(dateStr) {
+  if (!dateStr) return null;
+  const target = new Date(dateStr);
+  target.setHours(0, 0, 0, 0);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) {
+    return { text: `Expired (${Math.abs(diffDays)}d ago)`, color: "#dc2626", bg: "#fef2f2", border: "#fecaca" };
+  }
+  if (diffDays === 0) {
+    return { text: "Expires today!", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" };
+  }
+  if (diffDays <= 30) {
+    return { text: `${diffDays}d remaining`, color: "#d97706", bg: "#fffbeb", border: "#fde68a" };
+  }
+  return { text: "Compliant", color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" };
+}
 
 function computeDriverCompliance(driver) {
   const dates = [
@@ -138,6 +169,45 @@ export default function Drivers({ canManage = false }) {
     setSelectedDriver(null);
     setSelectedDriverFull(null);
   }, []);
+
+  const [downloadingDocId, setDownloadingDocId] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  async function handleQuickStatusChange(driverId, newStatus) {
+    if (!driverId || !newStatus) return;
+    try {
+      setUpdatingStatus(true);
+      const updated = await DriverAPI.patch(driverId, { status: newStatus });
+      setSelectedDriver((prev) => (prev ? { ...prev, status: newStatus } : updated));
+      setSelectedDriverFull((prev) => (prev ? { ...prev, status: newStatus } : updated));
+      setDrivers((prev) => prev.map((d) => (d.id === driverId ? { ...d, status: newStatus } : d)));
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to update driver status.");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  }
+
+  async function handleDownloadDoc(doc) {
+    const driverId = selectedDriverFull?.id || selectedDriver?.id;
+    if (!driverId || !doc?.id) return;
+    try {
+      setDownloadingDocId(doc.id);
+      const file = await DriverDocumentAPI.download(driverId, doc.id);
+      const url = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = doc.document_name || `${doc.type || "driver"}_document`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      alert("Could not download this document file.");
+    } finally {
+      setDownloadingDocId(null);
+    }
+  }
 
   // Handle ESC key for detail drawer
   useEffect(() => {
@@ -830,16 +900,41 @@ export default function Drivers({ canManage = false }) {
             <div className="drv-panel-header">
               <div className="drv-panel-top-bar">
                 <div className="drv-panel-badge-group">
-                  <span
-                    className="drv-status-pill"
-                    style={{
-                      background: activeStatusMeta.bg,
-                      color: activeStatusMeta.color,
-                      borderColor: activeStatusMeta.border
-                    }}
-                  >
-                    {activeStatusMeta.icon} {activeStatusMeta.label}
-                  </span>
+                  {canManage ? (
+                    <select
+                      className="drv-select"
+                      style={{
+                        padding: "0.25rem 0.6rem",
+                        fontSize: "0.78rem",
+                        fontWeight: 700,
+                        background: activeStatusMeta.bg,
+                        color: activeStatusMeta.color,
+                        borderColor: activeStatusMeta.border,
+                        borderRadius: "20px",
+                        cursor: "pointer",
+                      }}
+                      value={activeDriver.status}
+                      disabled={updatingStatus}
+                      onChange={(e) => handleQuickStatusChange(activeDriver.id, e.target.value)}
+                      title="Change duty status instantly"
+                    >
+                      <option value="active">🟢 Active (Available)</option>
+                      <option value="on_trip">🚕 On Trip</option>
+                      <option value="on_leave">🏖️ On Leave</option>
+                      <option value="inactive">⛔ Inactive</option>
+                    </select>
+                  ) : (
+                    <span
+                      className="drv-status-pill"
+                      style={{
+                        background: activeStatusMeta.bg,
+                        color: activeStatusMeta.color,
+                        borderColor: activeStatusMeta.border
+                      }}
+                    >
+                      {activeStatusMeta.icon} {activeStatusMeta.label}
+                    </span>
+                  )}
                   {activeCompliance && (
                     <span className={`drv-compliance-badge ${activeCompliance.class}`}>
                       {activeCompliance.status === "ok" ? "✅" : "⚠️"} {activeCompliance.text}
@@ -864,13 +959,12 @@ export default function Drivers({ canManage = false }) {
               <div className="drv-panel-hero">
                 {activeDriver.photo_path ? (
                   <img
-                    src={`/storage/${activeDriver.photo_path.replace(/^\/+/, "")}`}
+                    src={activeDriver.photo_path.startsWith("http") ? activeDriver.photo_path : `/storage/${activeDriver.photo_path.replace(/^\/+/, "")}`}
                     alt={activeDriver.name}
                     className="drv-hero-avatar"
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.style.display = "none";
-                      e.target.parentElement.innerHTML = `<div class="drv-hero-avatar" style="background:${getAvatarColor(activeDriver.name)}">${getInitials(activeDriver.name)}</div>`;
                     }}
                   />
                 ) : (
@@ -890,13 +984,21 @@ export default function Drivers({ canManage = false }) {
                     <span>🏢 {activeDriver.office?.name || "Head Office"}</span>
                     <span>•</span>
                     <span>Joined {formatDate(activeDriver.joining_date)}</span>
+                    {getTenureText(activeDriver.joining_date) && (
+                      <>
+                        <span>•</span>
+                        <span style={{ color: "#0284c7", fontWeight: 600 }}>
+                          ⏱️ {getTenureText(activeDriver.joining_date)}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Quick Action Bar */}
               <div className="drv-quick-actions">
-                <a href={`tel:${activeDriver.phone}`} className="drv-quick-btn">
+                <a href={`tel:${activeDriver.phone}`} className="drv-quick-btn" title={`Call ${activeDriver.phone}`}>
                   <span>📞</span> Call
                 </a>
                 {activeDriver.emergency_number && (
@@ -909,8 +1011,20 @@ export default function Drivers({ canManage = false }) {
                     <span>🚨</span> SOS
                   </a>
                 )}
+                {activeDriver.phone && (
+                  <a
+                    href={`https://wa.me/${activeDriver.phone.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="drv-quick-btn"
+                    title="Open WhatsApp chat"
+                    style={{ borderColor: "#86efac", color: "#16a34a" }}
+                  >
+                    <span>💬</span> WhatsApp
+                  </a>
+                )}
                 {activeDriver.email ? (
-                  <a href={`mailto:${activeDriver.email}`} className="drv-quick-btn">
+                  <a href={`mailto:${activeDriver.email}`} className="drv-quick-btn" title={`Email ${activeDriver.email}`}>
                     <span>✉️</span> Email
                   </a>
                 ) : (
@@ -918,6 +1032,7 @@ export default function Drivers({ canManage = false }) {
                     type="button"
                     className="drv-quick-btn"
                     onClick={() => handleCopy(activeDriver.phone, "phone-drawer")}
+                    title="Copy phone"
                   >
                     <span>{copiedKey === "phone-drawer" ? "✓" : "📋"}</span>
                     {copiedKey === "phone-drawer" ? "Copied" : "Copy Tel"}
@@ -927,6 +1042,7 @@ export default function Drivers({ canManage = false }) {
                   type="button"
                   className="drv-quick-btn"
                   onClick={() => handleCopy(activeDriver.license_number, "lic-drawer")}
+                  title="Copy driving license"
                 >
                   <span>{copiedKey === "lic-drawer" ? "✓" : "🪪"}</span>
                   {copiedKey === "lic-drawer" ? "Copied" : "Copy Lic"}
@@ -985,12 +1101,49 @@ export default function Drivers({ canManage = false }) {
                 <div className="drv-section-content">
                   <div className="drv-detail-row">
                     <span className="drv-detail-label">License Number</span>
-                    <span className="drv-detail-val mono">{activeDriver.license_number}</span>
+                    <span className="drv-detail-val mono" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                      <span>{activeDriver.license_number}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(activeDriver.license_number, "drawer-lic-btn")}
+                        title="Copy license number"
+                        style={{
+                          background: "none",
+                          border: "1px solid #cbd5e1",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          padding: "0.15rem 0.4rem",
+                          fontSize: "0.72rem",
+                          color: "#475569",
+                        }}
+                      >
+                        {copiedKey === "drawer-lic-btn" ? "✓" : "Copy"}
+                      </button>
+                    </span>
                   </div>
                   <div className="drv-detail-row">
                     <span className="drv-detail-label">License Expiry</span>
-                    <span className="drv-detail-val">
-                      {formatDate(activeDriver.license_expiry)}
+                    <span className="drv-detail-val" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                      <span>{formatDate(activeDriver.license_expiry)}</span>
+                      {(() => {
+                        const countdown = getExpiryCountdown(activeDriver.license_expiry);
+                        if (!countdown) return null;
+                        return (
+                          <span
+                            style={{
+                              fontSize: "0.7rem",
+                              padding: "0.1rem 0.4rem",
+                              borderRadius: "4px",
+                              fontWeight: 700,
+                              background: countdown.bg,
+                              color: countdown.color,
+                              border: `1px solid ${countdown.border}`,
+                            }}
+                          >
+                            {countdown.text}
+                          </span>
+                        );
+                      })()}
                     </span>
                   </div>
                   {activeDriver.insurance_expiry && (
@@ -1018,20 +1171,60 @@ export default function Drivers({ canManage = false }) {
                     </div>
                   )}
 
-                  {/* Attached Driver Documents */}
+                  {/* Attached Driver Documents with Direct Download */}
                   {activeDriver.documents && activeDriver.documents.length > 0 && (
-                    <div style={{ marginTop: "0.5rem", borderTop: "1px dashed #e2e8f0", paddingTop: "0.5rem" }}>
-                      <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", marginBottom: "0.4rem" }}>
+                    <div style={{ marginTop: "0.6rem", borderTop: "1px dashed #e2e8f0", paddingTop: "0.6rem" }}>
+                      <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", marginBottom: "0.5rem" }}>
                         Attached Documents ({activeDriver.documents.length})
                       </div>
-                      {activeDriver.documents.map((doc) => (
-                        <div key={doc.id} className="drv-detail-row" style={{ padding: "0.25rem 0" }}>
-                          <span className="drv-detail-label">📄 {doc.title || doc.document_type || "Document"}</span>
-                          <span className="drv-detail-val">
-                            {doc.expiry_date ? `Exp: ${formatDate(doc.expiry_date)}` : "Attached"}
-                          </span>
-                        </div>
-                      ))}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}>
+                        {activeDriver.documents.map((doc) => (
+                          <div
+                            key={doc.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              background: "#ffffff",
+                              padding: "0.45rem 0.6rem",
+                              borderRadius: "6px",
+                              border: "1px solid #e2e8f0",
+                              fontSize: "0.8rem",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", minWidth: 0 }}>
+                              <span>📄</span>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 600, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={doc.document_name}>
+                                  {doc.document_name || "Document"}
+                                </div>
+                                <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                                  {doc.file_size ? `${doc.file_size} • ` : ""}{doc.expiry_date ? `Exp: ${formatDate(doc.expiry_date)}` : (doc.status || "Uploaded")}
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadDoc(doc)}
+                              disabled={downloadingDocId === doc.id}
+                              title="Download document file"
+                              style={{
+                                flexShrink: 0,
+                                padding: "0.2rem 0.5rem",
+                                fontSize: "0.72rem",
+                                fontWeight: 600,
+                                background: "#eff6ff",
+                                color: "#2563eb",
+                                border: "1px solid #bfdbfe",
+                                borderRadius: "5px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              {downloadingDocId === doc.id ? "..." : "⬇️ Download"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1119,6 +1312,58 @@ export default function Drivers({ canManage = false }) {
                     <div className="drv-detail-row">
                       <span className="drv-detail-label">Address</span>
                       <span className="drv-detail-val">{activeDriver.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Recent & Assigned Trips */}
+              <div className="drv-panel-section">
+                <div className="drv-section-title">
+                  <span>🧭</span> Recent & Assigned Trips
+                </div>
+                <div className="drv-section-content">
+                  {activeDriver.bookings && activeDriver.bookings.length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                      {activeDriver.bookings.map((b) => (
+                        <div
+                          key={b.id}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid #e2e8f0",
+                            borderRadius: "6px",
+                            padding: "0.55rem 0.65rem",
+                            fontSize: "0.8rem",
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                            <span style={{ fontWeight: 700, color: "#0f172a" }}>
+                              {b.pickup_location} → {b.drop_location || "Destination"}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "0.7rem",
+                                padding: "0.1rem 0.4rem",
+                                borderRadius: "10px",
+                                fontWeight: 700,
+                                textTransform: "capitalize",
+                                background: b.status === "active" ? "#eff6ff" : b.status === "completed" ? "#f0fdf4" : "#fff7ed",
+                                color: b.status === "active" ? "#1d4ed8" : b.status === "completed" ? "#15803d" : "#c2410c",
+                              }}
+                            >
+                              {b.status}
+                            </span>
+                          </div>
+                          <div style={{ color: "#64748b", fontSize: "0.74rem", display: "flex", justifyContent: "space-between" }}>
+                            <span>📅 {formatDate(b.pickup_date)}{b.return_date && b.return_date !== b.pickup_date ? ` to ${formatDate(b.return_date)}` : ""}</span>
+                            <span>👤 {b.customer_name}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ color: "#64748b", fontSize: "0.8125rem", padding: "0.25rem 0" }}>
+                      No recent trips or active bookings recorded for this driver.
                     </div>
                   )}
                 </div>

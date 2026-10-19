@@ -101,6 +101,7 @@ export const DriverAPI = {
 
     return client.put(`/drivers/${id}`, payload).then((r) => r.data);
   },
+  patch: (id, payload) => client.patch(`/drivers/${id}`, payload).then((r) => r.data),
   remove: (id) => client.delete(`/drivers/${id}`).then((r) => r.data),
 };
 

@@ -39,6 +39,11 @@ class Driver extends Model
         return $this->hasMany(DriverDocument::class);
     }
 
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
+
     public function getDocumentStatusAttribute(): string
     {
         $documentDates = array_filter([

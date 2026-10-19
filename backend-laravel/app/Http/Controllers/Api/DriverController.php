@@ -64,7 +64,12 @@ class DriverController extends Controller
     // GET /api/drivers/{driver}
     public function show(Driver $driver)
     {
-        return response()->json($driver->load(['taxi', 'office', 'documents']));
+        return response()->json($driver->load([
+            'taxi',
+            'office',
+            'documents',
+            'bookings' => fn ($q) => $q->latest('pickup_date')->take(5)->with('taxi'),
+        ]));
     }
 
     // PUT /api/drivers/{driver}

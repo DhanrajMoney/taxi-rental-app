@@ -740,13 +740,15 @@
 }
 
 .drv-quick-actions {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
   margin-top: 0.2rem;
 }
 
 .drv-quick-btn {
+  flex: 1 1 calc(33.33% - 0.45rem);
+  min-width: 78px;
   display: flex;
   align-items: center;
   justify-content: center;
