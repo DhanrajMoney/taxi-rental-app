@@ -3,7 +3,7 @@
 
 $ErrorActionPreference = "Stop"
 $RootPath = (Get-Item $PSScriptRoot).Parent.FullName
-$Version = "1.1.3"
+$Version = "1.6.0"
 $ReleaseDir = Join-Path $RootPath "release-dist"
 $ZipFile = Join-Path $RootPath "ridedesk-v$Version-release.zip"
 
@@ -73,9 +73,10 @@ Get-ChildItem -Path (Join-Path $RootPath "frontend-react") | Where-Object {
 $StagingInstallation = Join-Path $ReleaseDir "installation"
 Copy-Item -Path (Join-Path $RootPath "installation") -Destination $StagingInstallation -Recurse -Force
 
-# Copy Readme and Plan
+# Copy Readme, Plan, and Feature documentation
 Copy-Item -Path (Join-Path $RootPath "README.md") -Destination $ReleaseDir -Force
 Copy-Item -Path (Join-Path $RootPath "plan.md") -Destination $ReleaseDir -Force
+Copy-Item -Path (Join-Path $RootPath "feature.md") -Destination $ReleaseDir -Force
 
 # 5. Compress into ZIP file
 Write-Host "`n[5/5] Compressing release package into ZIP..." -ForegroundColor Yellow
@@ -85,7 +86,12 @@ if (Test-Path $ZipFile) {
 Compress-Archive -Path "$ReleaseDir\*" -DestinationPath $ZipFile -CompressionLevel Optimal
 
 # Cleanup staging directory
-Remove-Item -Path $ReleaseDir -Recurse -Force
+Start-Sleep -Seconds 2
+try {
+    Remove-Item -Path $ReleaseDir -Recurse -Force -ErrorAction Stop
+} catch {
+    cmd.exe /c "rd /s /q `"$ReleaseDir`""
+}
 
 Write-Host "`n================================================" -ForegroundColor Green
 Write-Host "  SUCCESS! Release ZIP Created:" -ForegroundColor Green

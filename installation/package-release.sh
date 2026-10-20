@@ -4,7 +4,7 @@
 
 set -e
 
-VERSION="1.1.3"
+VERSION="1.6.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_PATH="$(dirname "$SCRIPT_DIR")"
 RELEASE_DIR="$ROOT_PATH/release-dist"
@@ -44,6 +44,7 @@ rsync -av --exclude='.git' --exclude='node_modules' --exclude='dist' "$ROOT_PATH
 cp -r "$ROOT_PATH/installation" "$RELEASE_DIR/"
 cp "$ROOT_PATH/README.md" "$RELEASE_DIR/"
 cp "$ROOT_PATH/plan.md" "$RELEASE_DIR/"
+cp "$ROOT_PATH/feature.md" "$RELEASE_DIR/"
 
 # 5. Compress
 echo -e "\n[5/5] Compressing release package into ZIP..."
