@@ -36,9 +36,15 @@
     Header unset X-Powered-By
 </IfModule>
 
-# Max Upload Size
-php_value upload_max_filesize 25M
-php_value post_max_size 25M
+# Max Upload Size (only active if mod_php is used; for PHP-FPM configure in cPanel MultiPHP INI Editor)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 25M
+    php_value post_max_size 25M
+</IfModule>
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 25M
+    php_value post_max_size 25M
+</IfModule>
 
 # Gzip / Deflate Compression for Fast Loading
 <IfModule mod_deflate.c>
@@ -87,6 +93,11 @@ php_value post_max_size 25M
 
 # Prevent viewing of sensitive files
 <FilesMatch "^\.(env|git|htaccess)">
-    Order allow,deny
-    Deny from all
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
