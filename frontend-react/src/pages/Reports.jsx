@@ -453,6 +453,40 @@ export default function Reports() {
   }, [monthlyTrend]);
 
   // Export handlers
+  const reportTitles = {
+    overview: {
+      title: "Financial & Operating P&L Overview",
+      desc: "Executive financial intelligence, fleet maintenance expenses, and gross profit margins.",
+    },
+    revenue: {
+      title: "Booking Revenue Breakdown Report",
+      desc: "Audit statement of realized rental revenues, quoted pipeline fares, and trip settlement status.",
+    },
+    utilization: {
+      title: "Fleet Utilization & Capacity Report",
+      desc: "Vehicle occupancy rates, trip days assigned, and asset operational efficiency.",
+    },
+    drivers: {
+      title: "Driver Performance & Revenue Contribution Report",
+      desc: "Trip completion rates, total bookings handled, and revenue earned per chauffeur.",
+    },
+    maintenance: {
+      title: "Fleet Maintenance & Servicing Cost Report",
+      desc: "Ledger of repair costs, routine servicing intervals, parts, and compliance receipts.",
+    },
+  };
+
+  const handlePrint = () => {
+    const originalTitle = document.title;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const activeTitle = reportTitles[reportType]?.title || "Operational Report";
+    document.title = `${settings.company_name || "RideDesk"} - ${activeTitle} - ${dateStr}`;
+    window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
+  };
+
   const handleExportCsv = () => {
     const prefix = `ridedesk-${reportType}-report-${new Date().toISOString().slice(0, 10)}`;
 
@@ -512,6 +546,17 @@ export default function Reports() {
     }
   };
 
+  const currentReportMeta = reportTitles[reportType] || reportTitles.overview;
+  const activeCount = reportType === "revenue"
+    ? `${revenueRows.length} Bookings`
+    : reportType === "utilization"
+    ? `${utilizationRows.length} Vehicles`
+    : reportType === "drivers"
+    ? `${driverRows.length} Drivers`
+    : reportType === "maintenance"
+    ? `${maintenanceRows.length} Service Logs`
+    : `${filteredBookings.length} Bookings`;
+
   const reportNavItems = [
     { key: "overview", label: "Financial & P&L", icon: "📊" },
     { key: "revenue", label: "Booking Revenue", icon: "💰" },
@@ -525,9 +570,13 @@ export default function Reports() {
       {/* Top Header / Print Banner */}
       <header className="reports-header-card">
         <div className="reports-header-info">
-          <h2>{settings.company_name || "RideDesk"} Operational Reports</h2>
+          <h2>
+            <span className="brand-prefix">{settings.company_name || "RideDesk"}</span>
+            <span className="header-divider"> — </span>
+            <span className="report-current-title">{currentReportMeta.title}</span>
+          </h2>
           <p className="reports-subhead">
-            Executive financial intelligence, fleet utilization metrics, and driver activity breakdowns.
+            {currentReportMeta.desc}
           </p>
         </div>
 
@@ -537,6 +586,17 @@ export default function Reports() {
           </span>
           <span className="badge date-badge">
             📅 {range === "custom" && customStart && customEnd ? `${customStart} to ${customEnd}` : rangeOptions.find((r) => r.value === range)?.label}
+          </span>
+          {searchQuery && (
+            <span className="badge filter-badge">
+              🔍 Filter: &ldquo;{searchQuery}&rdquo;
+            </span>
+          )}
+          <span className="badge count-badge print-only">
+            📋 {activeCount}
+          </span>
+          <span className="badge timestamp-badge print-only">
+            🕒 Generated: {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
       </header>
@@ -610,7 +670,7 @@ export default function Reports() {
           <button type="button" className="btn-action export-btn" onClick={handleExportCsv} title="Download CSV spreadsheet">
             📥 Export CSV
           </button>
-          <button type="button" className="btn-action print-btn" onClick={() => window.print()} title="Print or save as PDF">
+          <button type="button" className="btn-action print-btn" onClick={handlePrint} title="Print or save as PDF">
             🖨️ Print / PDF
           </button>
         </div>
@@ -1058,6 +1118,12 @@ export default function Reports() {
           )}
         </main>
       )}
+
+      {/* Print-only footer for formal financial records */}
+      <footer className="reports-print-footer print-only">
+        <span>{settings.company_name || "RideDesk"} • {currentReportMeta.title}</span>
+        <span>Generated for Internal Operations • Confidential</span>
+      </footer>
     </div>
   );
 }

@@ -109,9 +109,23 @@ export default function Drivers({ canManage = false }) {
   const [editing, setEditing] = useState(null);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [selectedDriverFull, setSelectedDriverFull] = useState(null);
+  const [avatarImgError, setAvatarImgError] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [copiedKey, setCopiedKey] = useState(null);
+
+  // Lock background scroll when drawer is open
+  useEffect(() => {
+    if (selectedDriver) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [selectedDriver]);
 
   function handleViewMode(mode) {
     setViewMode(mode);
@@ -157,17 +171,22 @@ export default function Drivers({ canManage = false }) {
   const openDetail = useCallback(async (driver) => {
     setSelectedDriver(driver);
     setSelectedDriverFull(driver);
+    setAvatarImgError(false);
+    setLoadingDetail(true);
     try {
       const full = await DriverAPI.get(driver.id);
-      setSelectedDriverFull(full);
+      setSelectedDriverFull(full?.data || full);
     } catch {
       // Keep lightweight driver if get fails
+    } finally {
+      setLoadingDetail(false);
     }
   }, []);
 
   const closeDetail = useCallback(() => {
     setSelectedDriver(null);
     setSelectedDriverFull(null);
+    setAvatarImgError(false);
   }, []);
 
   const [downloadingDocId, setDownloadingDocId] = useState(null);
@@ -957,15 +976,12 @@ export default function Drivers({ canManage = false }) {
 
               {/* Hero Profile Info */}
               <div className="drv-panel-hero">
-                {activeDriver.photo_path ? (
+                {activeDriver.photo_path && !avatarImgError ? (
                   <img
                     src={activeDriver.photo_path.startsWith("http") ? activeDriver.photo_path : `/storage/${activeDriver.photo_path.replace(/^\/+/, "")}`}
                     alt={activeDriver.name}
                     className="drv-hero-avatar"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.style.display = "none";
-                    }}
+                    onError={() => setAvatarImgError(true)}
                   />
                 ) : (
                   <div
@@ -1003,7 +1019,7 @@ export default function Drivers({ canManage = false }) {
                 </a>
                 {activeDriver.emergency_number && (
                   <a
-                    href={`tel:${activeDriver.emergency_number}`}
+                    href={`tel:${String(activeDriver.emergency_number).replace(/\s+/g, "")}`}
                     className="drv-quick-btn"
                     title={`Call Emergency Number: ${activeDriver.emergency_number}`}
                     style={{ borderColor: "#fca5a5", color: "#b91c1c" }}
@@ -1046,6 +1062,19 @@ export default function Drivers({ canManage = false }) {
                 >
                   <span>{copiedKey === "lic-drawer" ? "✓" : "🪪"}</span>
                   {copiedKey === "lic-drawer" ? "Copied" : "Copy Lic"}
+                </button>
+                <button
+                  type="button"
+                  className="drv-quick-btn"
+                  onClick={() => {
+                    const originalTitle = document.title;
+                    document.title = `${activeDriver.name} - Driver Profile Dossier - ${new Date().toISOString().slice(0, 10)}`;
+                    window.print();
+                    setTimeout(() => { document.title = originalTitle; }, 1000);
+                  }}
+                  title="Print or export driver profile dossier as PDF"
+                >
+                  <span>🖨️</span> Print Dossier
                 </button>
               </div>
             </div>
@@ -1149,24 +1178,81 @@ export default function Drivers({ canManage = false }) {
                   {activeDriver.insurance_expiry && (
                     <div className="drv-detail-row">
                       <span className="drv-detail-label">Insurance Expiry</span>
-                      <span className="drv-detail-val">
-                        {formatDate(activeDriver.insurance_expiry)}
+                      <span className="drv-detail-val" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                        <span>{formatDate(activeDriver.insurance_expiry)}</span>
+                        {(() => {
+                          const countdown = getExpiryCountdown(activeDriver.insurance_expiry);
+                          if (!countdown) return null;
+                          return (
+                            <span
+                              style={{
+                                fontSize: "0.7rem",
+                                padding: "0.1rem 0.4rem",
+                                borderRadius: "4px",
+                                fontWeight: 700,
+                                background: countdown.bg,
+                                color: countdown.color,
+                                border: `1px solid ${countdown.border}`,
+                              }}
+                            >
+                              {countdown.text}
+                            </span>
+                          );
+                        })()}
                       </span>
                     </div>
                   )}
                   {activeDriver.document_expiry && (
                     <div className="drv-detail-row">
                       <span className="drv-detail-label">Document Expiry</span>
-                      <span className="drv-detail-val">
-                        {formatDate(activeDriver.document_expiry)}
+                      <span className="drv-detail-val" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                        <span>{formatDate(activeDriver.document_expiry)}</span>
+                        {(() => {
+                          const countdown = getExpiryCountdown(activeDriver.document_expiry);
+                          if (!countdown) return null;
+                          return (
+                            <span
+                              style={{
+                                fontSize: "0.7rem",
+                                padding: "0.1rem 0.4rem",
+                                borderRadius: "4px",
+                                fontWeight: 700,
+                                background: countdown.bg,
+                                color: countdown.color,
+                                border: `1px solid ${countdown.border}`,
+                              }}
+                            >
+                              {countdown.text}
+                            </span>
+                          );
+                        })()}
                       </span>
                     </div>
                   )}
                   {activeDriver.required_document_expiry && (
                     <div className="drv-detail-row">
                       <span className="drv-detail-label">Mandatory Clearance</span>
-                      <span className="drv-detail-val">
-                        {formatDate(activeDriver.required_document_expiry)}
+                      <span className="drv-detail-val" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                        <span>{formatDate(activeDriver.required_document_expiry)}</span>
+                        {(() => {
+                          const countdown = getExpiryCountdown(activeDriver.required_document_expiry);
+                          if (!countdown) return null;
+                          return (
+                            <span
+                              style={{
+                                fontSize: "0.7rem",
+                                padding: "0.1rem 0.4rem",
+                                borderRadius: "4px",
+                                fontWeight: 700,
+                                background: countdown.bg,
+                                color: countdown.color,
+                                border: `1px solid ${countdown.border}`,
+                              }}
+                            >
+                              {countdown.text}
+                            </span>
+                          );
+                        })()}
                       </span>
                     </div>
                   )}
@@ -1323,7 +1409,11 @@ export default function Drivers({ canManage = false }) {
                   <span>🧭</span> Recent & Assigned Trips
                 </div>
                 <div className="drv-section-content">
-                  {activeDriver.bookings && activeDriver.bookings.length > 0 ? (
+                  {loadingDetail && !activeDriver.bookings ? (
+                    <div style={{ color: "#64748b", fontSize: "0.8125rem", padding: "0.5rem 0", textAlign: "center" }}>
+                      Loading trip history...
+                    </div>
+                  ) : activeDriver.bookings && activeDriver.bookings.length > 0 ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                       {activeDriver.bookings.map((b) => (
                         <div
@@ -1354,10 +1444,22 @@ export default function Drivers({ canManage = false }) {
                               {b.status}
                             </span>
                           </div>
-                          <div style={{ color: "#64748b", fontSize: "0.74rem", display: "flex", justifyContent: "space-between" }}>
+                          <div style={{ color: "#64748b", fontSize: "0.74rem", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "0.3rem" }}>
                             <span>📅 {formatDate(b.pickup_date)}{b.return_date && b.return_date !== b.pickup_date ? ` to ${formatDate(b.return_date)}` : ""}</span>
                             <span>👤 {b.customer_name}</span>
                           </div>
+                          {(b.taxi || b.final_fare != null || b.estimated_fare != null) && (
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.3rem", paddingTop: "0.3rem", borderTop: "1px dashed #f1f5f9", fontSize: "0.72rem" }}>
+                              {b.taxi ? (
+                                <span style={{ color: "#0369a1", fontWeight: 600 }}>🚖 {b.taxi.reg_number} {b.taxi.make_model ? `(${b.taxi.make_model})` : ""}</span>
+                              ) : <span />}
+                              {(b.final_fare != null || b.estimated_fare != null) && (
+                                <span style={{ color: "#16a34a", fontWeight: 700 }}>
+                                  ₹{Number(b.final_fare ?? b.estimated_fare).toLocaleString("en-IN")}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

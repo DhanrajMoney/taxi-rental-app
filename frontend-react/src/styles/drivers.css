@@ -1021,3 +1021,114 @@ input[type="file"]::file-selector-button:hover { background: var(--drv-primary-l
   .drv-filters-group { width: 100%; }
   .drv-select { flex: 1; }
 }
+
+/* ── 8. Print Styles (@media print) for Driver Dossier ── */
+@media print {
+  @page {
+    size: portrait;
+    margin: 10mm 14mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .dashboard-sidebar,
+  .app-header,
+  .drv-metrics-strip,
+  .drv-toolbar,
+  .drv-grid,
+  .drv-table-wrap,
+  .drv-compact-list,
+  .drv-panel-overlay,
+  .drv-panel-close-btn,
+  .drv-quick-actions,
+  .drv-panel-footer,
+  .drv-modal-overlay {
+    display: none !important;
+  }
+
+  .driver-detail-panel {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    box-shadow: none !important;
+    transform: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    display: block !important;
+  }
+
+  .drv-panel-header {
+    border-bottom: 2px solid #0f172a !important;
+    padding: 0 0 12px 0 !important;
+    margin-bottom: 14px !important;
+  }
+
+  .drv-panel-hero {
+    gap: 1.2rem !important;
+  }
+
+  .drv-hero-avatar {
+    width: 72px !important;
+    height: 72px !important;
+    font-size: 1.6rem !important;
+  }
+
+  .drv-hero-name {
+    font-size: 1.5rem !important;
+    color: #0f172a !important;
+  }
+
+  .drv-panel-body {
+    padding: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .drv-panel-section {
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    margin-bottom: 12px !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    background: #ffffff !important;
+  }
+
+  .drv-section-title {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    font-weight: 800 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    padding: 6px 10px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .drv-section-content {
+    padding: 8px 12px !important;
+    gap: 0.45rem !important;
+  }
+
+  .drv-detail-row {
+    padding: 3px 0 !important;
+    font-size: 0.82rem !important;
+  }
+
+  .drv-detail-val {
+    color: #0f172a !important;
+  }
+
+  .drv-status-pill,
+  .drv-compliance-badge {
+    border: 1px solid #cbd5e1 !important;
+  }
+}
