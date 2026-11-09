@@ -17,6 +17,7 @@ const sampleData = {
       driver_id: 1,
       final_fare: 4500,
       estimated_fare: 4500,
+      total_expenses: 550,
       taxi: { id: 1, reg_number: "ABC-1024", make_model: "Maruti Dzire" },
       driver: { id: 1, name: "John Smith" },
     },
@@ -32,6 +33,7 @@ const sampleData = {
       driver_id: 2,
       final_fare: null,
       estimated_fare: 5200,
+      total_expenses: 350,
       taxi: { id: 2, reg_number: "XYZ-8841", make_model: "Kia Carens" },
       driver: { id: 2, name: "Ava Nolan" },
     },
@@ -47,6 +49,7 @@ const sampleData = {
       driver_id: 1,
       final_fare: 3600,
       estimated_fare: 3600,
+      total_expenses: 420,
       taxi: { id: 1, reg_number: "ABC-1024", make_model: "Maruti Dzire" },
       driver: { id: 1, name: "John Smith" },
     },
@@ -297,20 +300,34 @@ export default function Reports() {
           b.driver?.name?.toLowerCase().includes(q)
         );
       })
-      .map((b) => ({
-        id: b.id,
-        customer: b.customer_name || "Unknown customer",
-        phone: b.customer_phone || "—",
-        pickup_date: b.pickup_date,
-        return_date: b.return_date,
-        trip_dates: `${formatDate(b.pickup_date)} → ${formatDate(b.return_date)}`,
-        route: `${b.pickup_location || "—"} → ${b.drop_location || "—"}`,
-        taxi: b.taxi?.reg_number || (b.taxi_id ? `Taxi #${b.taxi_id}` : "Unassigned"),
-        driver: b.driver?.name || (b.driver_id ? `Driver #${b.driver_id}` : "Unassigned"),
-        status: b.status || "pending",
-        final_fare: b.final_fare != null ? Number(b.final_fare) : null,
-        estimated_fare: b.estimated_fare != null ? Number(b.estimated_fare) : null,
-      }));
+      .map((b) => {
+        const finalFare = b.final_fare != null ? Number(b.final_fare) : null;
+        const estFare = b.estimated_fare != null ? Number(b.estimated_fare) : null;
+        const expenses = b.total_expenses != null
+          ? Number(b.total_expenses)
+          : Array.isArray(b.expenses)
+          ? b.expenses.filter((e) => e.status !== "rejected").reduce((s, e) => s + Number(e.amount || 0), 0)
+          : 0;
+        const base = finalFare != null ? finalFare : estFare;
+        const netProfit = base != null ? base - expenses : null;
+
+        return {
+          id: b.id,
+          customer: b.customer_name || "Unknown customer",
+          phone: b.customer_phone || "—",
+          pickup_date: b.pickup_date,
+          return_date: b.return_date,
+          trip_dates: `${formatDate(b.pickup_date)} → ${formatDate(b.return_date)}`,
+          route: `${b.pickup_location || "—"} → ${b.drop_location || "—"}`,
+          taxi: b.taxi?.reg_number || (b.taxi_id ? `Taxi #${b.taxi_id}` : "Unassigned"),
+          driver: b.driver?.name || (b.driver_id ? `Driver #${b.driver_id}` : "Unassigned"),
+          status: b.status || "pending",
+          final_fare: finalFare,
+          estimated_fare: estFare,
+          expenses,
+          net_profit: netProfit,
+        };
+      });
   }, [filteredBookings, searchQuery]);
 
   // Utilization Rows
@@ -421,7 +438,7 @@ export default function Reports() {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const label = d.toLocaleString("default", { month: "short" });
-      monthMap[key] = { label, revenue: 0, maintenance: 0 };
+      monthMap[key] = { label, revenue: 0, expenses: 0, maintenance: 0 };
     }
 
     filteredBookings.forEach((b) => {
@@ -430,6 +447,27 @@ export default function Reports() {
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
         if (monthMap[key]) {
           monthMap[key].revenue += Number(b.final_fare ?? b.estimated_fare ?? 0);
+        }
+      }
+
+      // Collect trip expenses into the corresponding month
+      if (Array.isArray(b.expenses) && b.expenses.length > 0) {
+        b.expenses.forEach((e) => {
+          if (e.status === "rejected") return;
+          const expDate = parseDate(e.expense_date || b.pickup_date);
+          if (expDate) {
+            const expKey = `${expDate.getFullYear()}-${String(expDate.getMonth() + 1).padStart(2, "0")}`;
+            if (monthMap[expKey]) {
+              monthMap[expKey].expenses += Number(e.amount || 0);
+            }
+          }
+        });
+      } else if (b.total_expenses != null && Number(b.total_expenses) > 0) {
+        if (d) {
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          if (monthMap[key]) {
+            monthMap[key].expenses += Number(b.total_expenses);
+          }
         }
       }
     });
@@ -448,7 +486,10 @@ export default function Reports() {
   }, [filteredBookings, filteredMaintenance]);
 
   const maxTrendValue = useMemo(() => {
-    const maxVal = Math.max(...monthlyTrend.map((m) => Math.max(m.revenue, m.maintenance)), 1000);
+    const maxVal = Math.max(
+      ...monthlyTrend.map((m) => Math.max(m.revenue, m.expenses || 0, m.maintenance)),
+      1000,
+    );
     return maxVal;
   }, [monthlyTrend]);
 
@@ -502,6 +543,8 @@ export default function Reports() {
         "Status": r.status,
         "Final Revenue": r.final_fare != null ? r.final_fare : "",
         "Estimated Fare": r.estimated_fare != null ? r.estimated_fare : "",
+        "Trip Expenses": r.expenses,
+        "Net Profit": r.net_profit != null ? r.net_profit : "",
       })));
       return;
     }
@@ -736,10 +779,11 @@ export default function Reports() {
                 <div className="chart-card-head">
                   <div>
                     <h3>Monthly Financial Trajectory</h3>
-                    <p className="chart-subhead">Comparison of booking revenues versus fleet maintenance expenses</p>
+                    <p className="chart-subhead">Comparison of booking revenues, operating trip expenses, and fleet maintenance</p>
                   </div>
                   <div className="chart-legend">
                     <span className="legend-item"><span className="legend-dot dot-revenue"></span> Revenue</span>
+                    <span className="legend-item"><span className="legend-dot dot-expenses"></span> Trip Expenses</span>
                     <span className="legend-item"><span className="legend-dot dot-maintenance"></span> Maintenance</span>
                   </div>
                 </div>
@@ -747,6 +791,7 @@ export default function Reports() {
                 <div className="custom-bar-chart">
                   {monthlyTrend.map((bar) => {
                     const revHeight = Math.max(4, (bar.revenue / maxTrendValue) * 100);
+                    const expHeight = Math.max(4, ((bar.expenses || 0) / maxTrendValue) * 100);
                     const maintHeight = Math.max(4, (bar.maintenance / maxTrendValue) * 100);
 
                     return (
@@ -758,6 +803,13 @@ export default function Reports() {
                             title={`Revenue: ${formatMoney(bar.revenue)}`}
                           >
                             {bar.revenue > 0 && <span className="bar-tag">{formatMoney(bar.revenue)}</span>}
+                          </div>
+                          <div
+                            className="bar bar-expenses"
+                            style={{ height: `${expHeight}%` }}
+                            title={`Trip Expenses: ${formatMoney(bar.expenses || 0)}`}
+                          >
+                            {(bar.expenses || 0) > 0 && <span className="bar-tag">{formatMoney(bar.expenses)}</span>}
                           </div>
                           <div
                             className="bar bar-maintenance"
@@ -849,6 +901,8 @@ export default function Reports() {
                       <th>Status</th>
                       <th className="num-col">Final Fare</th>
                       <th className="num-col">Estimated Fare</th>
+                      <th className="num-col">Trip Expenses</th>
+                      <th className="num-col">Net Margin</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -889,11 +943,27 @@ export default function Reports() {
                             <span className="text-muted">—</span>
                           )}
                         </td>
+                        <td className="num-col">
+                          {r.expenses > 0 ? (
+                            <span className="text-rose">-{formatMoney(r.expenses)}</span>
+                          ) : (
+                            <span className="text-muted">₹0.00</span>
+                          )}
+                        </td>
+                        <td className="num-col">
+                          {r.net_profit != null ? (
+                            <strong className={r.net_profit >= 0 ? "text-emerald" : "text-rose"}>
+                              {formatMoney(r.net_profit)}
+                            </strong>
+                          ) : (
+                            <span className="text-muted">—</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                     {revenueRows.length === 0 && (
                       <tr>
-                        <td colSpan={9} className="empty">No matching booking revenue records found for this period.</td>
+                        <td colSpan={11} className="empty">No matching booking revenue records found for this period.</td>
                       </tr>
                     )}
                   </tbody>
@@ -903,6 +973,8 @@ export default function Reports() {
                         <td colSpan={7}><strong>Total Revenue Realized ({revenueRows.length} bookings)</strong></td>
                         <td className="num-col"><strong className="text-emerald">{formatMoney(finalizedRevenue)}</strong></td>
                         <td className="num-col"><strong>{formatMoney(estimatedPipeline)}</strong></td>
+                        <td className="num-col"><strong className="text-rose">-{formatMoney(totalTripExpenses)}</strong></td>
+                        <td className="num-col"><strong className="text-emerald">{formatMoney(finalizedRevenue - totalTripExpenses)}</strong></td>
                       </tr>
                     </tfoot>
                   )}

@@ -305,6 +305,7 @@
 }
 
 .dot-revenue { background: #167a42; }
+.dot-expenses { background: #dc2626; }
 .dot-maintenance { background: #d97706; }
 
 .custom-bar-chart {
@@ -330,14 +331,14 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   height: 100%;
   width: 100%;
   position: relative;
 }
 
 .bar {
-  width: 22px;
+  width: 18px;
   border-radius: 4px 4px 0 0;
   transition: height 350ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms ease;
   position: relative;
@@ -350,6 +351,10 @@
 
 .bar-revenue {
   background: linear-gradient(180deg, #167a42 0%, #22c55e 100%);
+}
+
+.bar-expenses {
+  background: linear-gradient(180deg, #b91c1c 0%, #ef4444 100%);
 }
 
 .bar-maintenance {
@@ -603,6 +608,7 @@
 }
 
 .text-emerald { color: #167a42; }
+.text-rose { color: #dc2626; font-weight: 600; }
 .text-amber { color: #b45309; }
 .text-muted { color: #94a3b8; }
 
@@ -878,6 +884,11 @@
 
   .text-emerald {
     color: #15803d !important;
+    font-weight: 700 !important;
+  }
+
+  .text-rose {
+    color: #dc2626 !important;
     font-weight: 700 !important;
   }
 
