@@ -42,9 +42,61 @@ class ImportController extends Controller
                 ];
                 break;
             case 'bookings':
-                $headers = ['customer_name', 'customer_phone', 'taxi_reg_number', 'driver_license_number', 'pickup_date', 'return_date', 'pickup_location', 'drop_location', 'status'];
+                $headers = [
+                    'customer_name',
+                    'customer_phone',
+                    'taxi_reg_number',
+                    'driver_license_number',
+                    'pickup_date',
+                    'return_date',
+                    'pickup_location',
+                    'drop_location',
+                    'status',
+                    'final_fare',
+                    'pricing_type',
+                    'rate_amount',
+                    'odometer_start',
+                    'odometer_end',
+                    'actual_distance_km',
+                    'notes',
+                ];
                 $sample = [
-                    ['Rajesh Kumar', '+91 98765 43210', 'MH-01-AB-1234', 'DL-1420110012345', '2026-10-10', '2026-10-12', 'Airport Terminal 1', 'Hotel Taj', 'confirmed'],
+                    [
+                        'Rajesh Kumar',
+                        '+91 98765 43210',
+                        'MH-01-AB-1234',
+                        'DL-1420110012345',
+                        '2024-03-10',
+                        '2024-03-12',
+                        'Airport Terminal 1',
+                        'Hotel Taj, Colaba',
+                        'completed',
+                        '4500.00',
+                        'daily',
+                        '1500.00',
+                        '45200',
+                        '45380',
+                        '180',
+                        'Historical corporate ride',
+                    ],
+                    [
+                        'Anita Verma',
+                        '+91 98765 43211',
+                        '',
+                        '',
+                        '2024-04-01',
+                        '2024-04-01',
+                        'Connaught Place',
+                        'Gurugram Cyber Hub',
+                        'completed',
+                        '1200.00',
+                        'per_km',
+                        '18.00',
+                        '',
+                        '',
+                        '65',
+                        'Historical local rental (unassigned fleet/driver)',
+                    ],
                 ];
                 break;
             default:
@@ -53,7 +105,7 @@ class ImportController extends Controller
 
         $output = implode(',', $headers)."\n";
         foreach ($sample as $row) {
-            $output .= implode(',', array_map(fn ($v) => '"'.str_replace('"', '""', $v).'"', $row))."\n";
+            $output .= implode(',', array_map(fn ($v) => '"'.str_replace('"', '""', (string) $v).'"', $row))."\n";
         }
 
         return Response::make($output, 200, [
@@ -93,12 +145,12 @@ class ImportController extends Controller
         // Clean & normalize headers (trim whitespace and convert to lowercase)
         $headers = array_map(fn ($h) => strtolower(trim((string) $h)), $rawHeaders);
 
-        // Validate mandatory columns per entity
+        // Validate mandatory columns per entity (taxi & driver are optional for legacy/historical bookings)
         $requiredHeaders = [
             'customers' => ['name', 'phone'],
             'taxis' => ['reg_number', 'make_model'],
             'drivers' => ['name', 'phone', 'license_number', 'license_expiry'],
-            'bookings' => ['customer_name', 'customer_phone', 'taxi_reg_number', 'driver_license_number', 'pickup_date', 'return_date'],
+            'bookings' => ['customer_name', 'customer_phone', 'pickup_date', 'return_date'],
         ];
 
         $missing = array_diff($requiredHeaders[$type] ?? [], $headers);
@@ -280,7 +332,43 @@ class ImportController extends Controller
                         $mapped['drop_location'] = $mapped['pickup_location'] ?: 'HQ';
                     }
 
-                    // Match taxi by reg_number
+                    // Status handling (support completed for historical bookings)
+                    $statusVal = strtolower($mapped['status'] ?? '');
+                    if (! empty($statusVal) && ! in_array($statusVal, ['pending', 'confirmed', 'active', 'completed', 'cancelled'])) {
+                        $errors[] = "Invalid status '{$mapped['status']}'. Must be one of: pending, confirmed, active, completed, cancelled.";
+                    } elseif (empty($statusVal)) {
+                        $isPast = ! empty($mapped['return_date']) && strtotime($mapped['return_date']) < time();
+                        $mapped['status'] = $isPast ? 'completed' : 'confirmed';
+                    } else {
+                        $mapped['status'] = $statusVal;
+                    }
+
+                    // Optional financial & metric validation for old/historical bookings
+                    if (! empty($mapped['final_fare']) && ! is_numeric($mapped['final_fare'])) {
+                        $errors[] = 'Final fare must be a numeric value.';
+                    }
+                    if (! empty($mapped['rate_amount']) && ! is_numeric($mapped['rate_amount'])) {
+                        $errors[] = 'Rate amount must be a numeric value.';
+                    }
+                    if (! empty($mapped['odometer_start']) && ! is_numeric($mapped['odometer_start'])) {
+                        $errors[] = 'Odometer start must be a number.';
+                    }
+                    if (! empty($mapped['odometer_end']) && ! is_numeric($mapped['odometer_end'])) {
+                        $errors[] = 'Odometer end must be a number.';
+                    }
+                    if (! empty($mapped['actual_distance_km']) && ! is_numeric($mapped['actual_distance_km'])) {
+                        $errors[] = 'Actual distance must be a numeric value.';
+                    }
+
+                    // Compute actual distance if odometer start and end are provided
+                    if (! empty($mapped['odometer_end']) && ! empty($mapped['odometer_start']) && empty($mapped['actual_distance_km']) && is_numeric($mapped['odometer_end']) && is_numeric($mapped['odometer_start'])) {
+                        $diff = (int) $mapped['odometer_end'] - (int) $mapped['odometer_start'];
+                        if ($diff >= 0) {
+                            $mapped['actual_distance_km'] = $diff;
+                        }
+                    }
+
+                    // Match taxi by reg_number (optional for legacy/historical data)
                     if (! empty($mapped['taxi_reg_number'])) {
                         $taxi = Taxi::where('reg_number', $mapped['taxi_reg_number'])->first();
                         if (! $taxi) {
@@ -289,10 +377,10 @@ class ImportController extends Controller
                             $mapped['taxi_id'] = $taxi->id;
                         }
                     } else {
-                        $errors[] = 'Taxi registration number is required.';
+                        $mapped['taxi_id'] = null;
                     }
 
-                    // Match driver by license_number
+                    // Match driver by license_number (optional for legacy/historical data)
                     if (! empty($mapped['driver_license_number'])) {
                         $driver = Driver::where('license_number', $mapped['driver_license_number'])->first();
                         if (! $driver) {
@@ -301,7 +389,7 @@ class ImportController extends Controller
                             $mapped['driver_id'] = $driver->id;
                         }
                     } else {
-                        $errors[] = 'Driver license number is required.';
+                        $mapped['driver_id'] = null;
                     }
                     break;
             }
@@ -458,18 +546,35 @@ class ImportController extends Controller
 
                         $pickupLoc = ! empty($data['pickup_location']) ? $data['pickup_location'] : 'HQ';
                         $dropLoc = ! empty($data['drop_location']) ? $data['drop_location'] : $pickupLoc;
+                        $status = strtolower($data['status'] ?? 'confirmed');
+                        if (! in_array($status, ['pending', 'confirmed', 'active', 'completed', 'cancelled'])) {
+                            $status = 'confirmed';
+                        }
+
+                        $finalFare = ! empty($data['final_fare']) && is_numeric($data['final_fare']) ? (float) $data['final_fare'] : null;
+                        $estimatedFare = ! empty($data['estimated_fare']) && is_numeric($data['estimated_fare'])
+                            ? (float) $data['estimated_fare']
+                            : ($finalFare ?? null);
 
                         Booking::create([
                             'customer_id' => $customer->id,
                             'customer_name' => $data['customer_name'],
                             'customer_phone' => $data['customer_phone'],
-                            'taxi_id' => $data['taxi_id'],
-                            'driver_id' => $data['driver_id'],
+                            'taxi_id' => ! empty($data['taxi_id']) ? $data['taxi_id'] : null,
+                            'driver_id' => ! empty($data['driver_id']) ? $data['driver_id'] : null,
                             'pickup_date' => $data['pickup_date'],
                             'return_date' => $data['return_date'],
                             'pickup_location' => $pickupLoc,
                             'drop_location' => $dropLoc,
-                            'status' => strtolower($data['status'] ?? 'confirmed'),
+                            'status' => $status,
+                            'notes' => $data['notes'] ?? null,
+                            'pricing_type' => ! empty($data['pricing_type']) ? strtolower($data['pricing_type']) : null,
+                            'rate_amount' => ! empty($data['rate_amount']) && is_numeric($data['rate_amount']) ? (float) $data['rate_amount'] : null,
+                            'odometer_start' => ! empty($data['odometer_start']) && is_numeric($data['odometer_start']) ? (int) $data['odometer_start'] : null,
+                            'odometer_end' => ! empty($data['odometer_end']) && is_numeric($data['odometer_end']) ? (int) $data['odometer_end'] : null,
+                            'actual_distance_km' => ! empty($data['actual_distance_km']) && is_numeric($data['actual_distance_km']) ? (int) $data['actual_distance_km'] : null,
+                            'final_fare' => $finalFare,
+                            'estimated_fare' => $estimatedFare,
                             'office_id' => $user?->office_id,
                         ]);
                         $imported++;

@@ -30,7 +30,7 @@ const TEMPLATE_META = [
     title: "4. Reservations",
     seq: "Step 4 of 4",
     icon: "📅",
-    desc: "Historical trips matched by taxi registration and driver license number.",
+    desc: "Historical & active trips. Supports past dates, final fare, odometer, and optional vehicle/driver matching.",
   },
 ];
 
@@ -330,7 +330,13 @@ export default function ImportData() {
                 {preview.rows.map((row) => {
                   const m = row.mapped;
                   const dataSummary = m.name || m.reg_number || m.customer_name || "Record Row";
-                  const subSummary = m.phone || m.make_model || m.license_number || m.pickup_date || "";
+                  let subSummary = m.phone || m.make_model || m.license_number || m.pickup_date || "";
+                  if (m.final_fare) {
+                    subSummary += ` • Fare: ₹${m.final_fare}`;
+                  }
+                  if (m.status) {
+                    subSummary += ` • Status: ${m.status}`;
+                  }
 
                   return (
                     <tr key={row.row_number}>

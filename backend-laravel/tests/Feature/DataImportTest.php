@@ -252,4 +252,68 @@ class DataImportTest extends TestCase
             'status' => 'confirmed',
         ]);
     }
+
+    public function test_admin_can_download_bookings_template_with_historical_fields()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($admin)->get('/api/imports/templates/bookings');
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('final_fare', $response->getContent());
+        $this->assertStringContainsString('odometer_start', $response->getContent());
+        $this->assertStringContainsString('actual_distance_km', $response->getContent());
+    }
+
+    public function test_import_historical_completed_bookings_with_final_fare_and_unassigned_fleet()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        // Historical completed booking with unassigned fleet/driver and past dates
+        $csvContent = "customer_name,customer_phone,taxi_reg_number,driver_license_number,pickup_date,return_date,pickup_location,drop_location,status,final_fare,pricing_type,rate_amount,odometer_start,odometer_end,actual_distance_km,notes\n".
+            "Old Client,+91 94444 33333,,,2023-05-10,2023-05-12,Old Terminal,Old Hotel,completed,3500.00,daily,1750.00,10000,10250,250,Historical 2023 trip\n";
+
+        $file = UploadedFile::fake()->createWithContent('old_bookings.csv', $csvContent);
+
+        // 1. Preview
+        $previewResponse = $this->actingAs($admin)->postJson('/api/imports/preview', [
+            'entity_type' => 'bookings',
+            'file' => $file,
+        ]);
+
+        $previewResponse->assertStatus(200)
+            ->assertJsonPath('total_rows', 1)
+            ->assertJsonPath('valid_rows', 1)
+            ->assertJsonPath('rows.0.status', 'valid')
+            ->assertJsonPath('rows.0.mapped.final_fare', '3500.00')
+            ->assertJsonPath('rows.0.mapped.taxi_id', null)
+            ->assertJsonPath('rows.0.mapped.driver_id', null);
+
+        $mappedRows = $previewResponse->json('rows');
+
+        // 2. Confirm
+        $confirmResponse = $this->actingAs($admin)->postJson('/api/imports/confirm', [
+            'entity_type' => 'bookings',
+            'file_name' => 'old_bookings.csv',
+            'rows' => $mappedRows,
+        ]);
+
+        $confirmResponse->assertStatus(200);
+
+        $this->assertDatabaseHas('bookings', [
+            'customer_phone' => '+91 94444 33333',
+            'status' => 'completed',
+            'final_fare' => 3500.00,
+            'taxi_id' => null,
+            'driver_id' => null,
+            'actual_distance_km' => 250,
+            'notes' => 'Historical 2023 trip',
+        ]);
+
+        // Customer was also auto-created
+        $this->assertDatabaseHas('customers', [
+            'phone' => '+91 94444 33333',
+            'name' => 'Old Client',
+        ]);
+    }
 }
