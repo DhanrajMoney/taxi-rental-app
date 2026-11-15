@@ -156,6 +156,8 @@ export const ProfileAPI = {
 
 export const ImportAPI = {
   getTemplateUrl: (type) => `${BASE_URL}/imports/templates/${type}`,
+  downloadTemplate: (type) =>
+    client.get(`/imports/templates/${type}`, { responseType: "blob" }).then((r) => r.data),
   preview: (payload) => client.post("/imports/preview", payload).then((r) => r.data),
   confirm: (payload) => client.post("/imports/confirm", payload).then((r) => r.data),
   getHistory: () => client.get("/imports/history").then((r) => r.data),

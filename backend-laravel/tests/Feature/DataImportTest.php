@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Customer;
+use App\Models\Driver;
 use App\Models\Taxi;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -56,6 +58,50 @@ class DataImportTest extends TestCase
             ->assertJsonPath('valid_rows', 1);
     }
 
+    public function test_import_preview_strips_utf8_bom_and_normalizes_headers()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        // Prepended with UTF-8 BOM (\xEF\xBB\xBF) common in Excel exports on Windows
+        $bomCsv = "\xEF\xBB\xBFNAME,PHONE,EMAIL,ADDRESS\n".
+            "Alice Smith,+91 91234 56789,alice@example.com,78 Green Avenue\n";
+
+        $file = UploadedFile::fake()->createWithContent('customers_bom.csv', $bomCsv);
+
+        $response = $this->actingAs($admin)->postJson('/api/imports/preview', [
+            'entity_type' => 'customers',
+            'file' => $file,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('total_rows', 1)
+            ->assertJsonPath('valid_rows', 1)
+            ->assertJsonPath('rows.0.mapped.name', 'Alice Smith');
+    }
+
+    public function test_import_preview_detects_in_batch_duplicates()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        // CSV containing duplicate phone within the same batch
+        $csvContent = "name,phone,email,address\n".
+            "John Doe,+91 90000 00001,john@example.com,Address 1\n".
+            "John Duplicate,+91 90000 00001,johndup@example.com,Address 2\n";
+
+        $file = UploadedFile::fake()->createWithContent('batch_dups.csv', $csvContent);
+
+        $response = $this->actingAs($admin)->postJson('/api/imports/preview', [
+            'entity_type' => 'customers',
+            'file' => $file,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('total_rows', 2)
+            ->assertJsonPath('valid_rows', 1)
+            ->assertJsonPath('duplicate_rows', 1)
+            ->assertJsonPath('rows.1.status', 'duplicate');
+    }
+
     public function test_import_confirm_creates_records_and_audit_log()
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -85,6 +131,125 @@ class DataImportTest extends TestCase
         $response->assertStatus(200);
 
         $this->assertDatabaseHas('taxis', ['reg_number' => 'IMP-TAXI-100']);
-        $this->assertDatabaseHas('import_logs', ['entity_type' => 'taxis', 'imported_rows' => 1]);
+        $this->assertDatabaseHas('import_logs', [
+            'entity_type' => 'taxis',
+            'imported_rows' => 1,
+            'updated_rows' => 0,
+        ]);
+    }
+
+    public function test_import_confirm_supports_skip_and_update_modes()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        Customer::create([
+            'name' => 'Existing Person',
+            'phone' => '+91 88888 77777',
+            'email' => 'old@example.com',
+        ]);
+
+        $rows = [
+            [
+                'mapped' => [
+                    'name' => 'Updated Person',
+                    'phone' => '+91 88888 77777',
+                    'email' => 'new@example.com',
+                ],
+            ],
+        ];
+
+        // 1. Confirm with duplicate_action = skip
+        $skipResponse = $this->actingAs($admin)->postJson('/api/imports/confirm', [
+            'entity_type' => 'customers',
+            'file_name' => 'customers.csv',
+            'rows' => $rows,
+            'duplicate_action' => 'skip',
+        ]);
+
+        $skipResponse->assertStatus(200);
+        $this->assertDatabaseHas('customers', [
+            'phone' => '+91 88888 77777',
+            'email' => 'old@example.com',
+        ]);
+        $this->assertDatabaseHas('import_logs', [
+            'skipped_rows' => 1,
+            'imported_rows' => 0,
+            'updated_rows' => 0,
+        ]);
+
+        // 2. Confirm with duplicate_action = update
+        $updateResponse = $this->actingAs($admin)->postJson('/api/imports/confirm', [
+            'entity_type' => 'customers',
+            'file_name' => 'customers.csv',
+            'rows' => $rows,
+            'duplicate_action' => 'update',
+        ]);
+
+        $updateResponse->assertStatus(200);
+        $this->assertDatabaseHas('customers', [
+            'phone' => '+91 88888 77777',
+            'email' => 'new@example.com',
+        ]);
+        $this->assertDatabaseHas('import_logs', [
+            'imported_rows' => 0,
+            'updated_rows' => 1,
+        ]);
+    }
+
+    public function test_import_bookings_validates_and_defaults_locations()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $taxi = Taxi::create([
+            'reg_number' => 'MH-02-ZZ-9999',
+            'make_model' => 'Maruti Dzire',
+            'vehicle_type' => 'sedan',
+            'year_of_manufacture' => 2022,
+            'seating_capacity' => 4,
+            'fuel_type' => 'cng',
+            'pricing_type' => 'daily',
+            'rate_amount' => 1200,
+            'status' => 'available',
+        ]);
+
+        $driver = Driver::create([
+            'name' => 'Ramesh Driver',
+            'phone' => '+91 97777 66666',
+            'license_number' => 'DL-999888777',
+            'license_expiry' => '2028-12-31',
+            'joining_date' => '2024-01-01',
+            'status' => 'active',
+        ]);
+
+        $rows = [
+            [
+                'mapped' => [
+                    'customer_name' => 'Tourist Client',
+                    'customer_phone' => '+91 95555 44444',
+                    'taxi_id' => $taxi->id,
+                    'driver_id' => $driver->id,
+                    'pickup_date' => '2026-11-20',
+                    'return_date' => '2026-11-22',
+                    'pickup_location' => '',
+                    'drop_location' => '',
+                    'status' => 'confirmed',
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($admin)->postJson('/api/imports/confirm', [
+            'entity_type' => 'bookings',
+            'file_name' => 'bookings.csv',
+            'rows' => $rows,
+        ]);
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('bookings', [
+            'customer_phone' => '+91 95555 44444',
+            'pickup_location' => 'HQ',
+            'drop_location' => 'HQ',
+            'status' => 'confirmed',
+        ]);
     }
 }

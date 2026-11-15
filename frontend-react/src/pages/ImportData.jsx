@@ -41,6 +41,8 @@ export default function ImportData() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [downloadingType, setDownloadingType] = useState(null);
+  const [duplicateAction, setDuplicateAction] = useState("update"); // "update" | "skip"
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -52,6 +54,27 @@ export default function ImportData() {
     ImportAPI.getHistory()
       .then((data) => setHistory(data))
       .catch(() => {});
+  }
+
+  async function handleDownloadTemplate(type) {
+    try {
+      setDownloadingType(type);
+      setError("");
+      setMessage("");
+      const blob = await ImportAPI.downloadTemplate(type);
+      const blobUrl = window.URL.createObjectURL(new Blob([blob], { type: "text/csv;charset=utf-8;" }));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `${type}_import_template.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      setError(err?.response?.data?.message || "Failed to download CSV template.");
+    } finally {
+      setDownloadingType(null);
+    }
   }
 
   function handleFileChange(e) {
@@ -93,6 +116,7 @@ export default function ImportData() {
       entity_type: entityType,
       file_name: preview.file_name,
       rows: validRows,
+      duplicate_action: duplicateAction,
     })
       .then((res) => {
         setMessage(res.message);
@@ -160,14 +184,15 @@ export default function ImportData() {
                 </div>
                 <p className="import-template-desc">{tmpl.desc}</p>
               </div>
-              <a
-                href={ImportAPI.getTemplateUrl(tmpl.type)}
-                download
+              <button
+                type="button"
+                onClick={() => handleDownloadTemplate(tmpl.type)}
+                disabled={downloadingType === tmpl.type}
                 className="button secondary"
-                style={{ width: "100%", justifyContent: "center", textDecoration: "none" }}
+                style={{ width: "100%", justifyContent: "center" }}
               >
-                📥 Download CSV
-              </a>
+                {downloadingType === tmpl.type ? "⏳ Downloading..." : "📥 Download CSV"}
+              </button>
             </div>
           ))}
         </div>
@@ -206,7 +231,7 @@ export default function ImportData() {
                 {selectedFile ? "CSV File Selected" : "Click to select a CSV file"}
               </div>
               <div className="import-dropzone-subtext">
-                Supports .csv files (max 5 MB)
+                Supports .csv files (max 5 MB) with UTF-8 BOM compatibility
               </div>
               {selectedFile && (
                 <div className="import-file-badge">
@@ -218,7 +243,7 @@ export default function ImportData() {
 
           <div className="settings-actions" style={{ marginTop: "20px" }}>
             <button type="submit" className="btn-primary" disabled={loading || !selectedFile}>
-              {loading ? "🔍 Validating CSV Rows..." : "🔍 Preview &amp; Validate CSV"}
+              {loading ? "🔍 Validating CSV Rows..." : "🔍 Preview & Validate CSV"}
             </button>
           </div>
         </form>
@@ -269,6 +294,26 @@ export default function ImportData() {
               </div>
             </div>
           </div>
+
+          {/* Duplicate Resolution Selection */}
+          {preview.duplicate_rows > 0 && (
+            <div style={{ background: "#fff8ec", border: "1px solid #fed7aa", borderRadius: "8px", padding: "14px 18px", marginBottom: "20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+              <div>
+                <strong style={{ color: "#9a3412", display: "block" }}>🔄 {preview.duplicate_rows} duplicate or existing record(s) detected</strong>
+                <span style={{ fontSize: "13px", color: "#7c2d12" }}>Select how RideDesk should handle records that already exist in your database:</span>
+              </div>
+              <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", cursor: "pointer", fontWeight: "600" }}>
+                  <input type="radio" name="duplicateAction" value="update" checked={duplicateAction === "update"} onChange={() => setDuplicateAction("update")} />
+                  Update existing records
+                </label>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", cursor: "pointer", fontWeight: "600" }}>
+                  <input type="radio" name="duplicateAction" value="skip" checked={duplicateAction === "skip"} onChange={() => setDuplicateAction("skip")} />
+                  Skip duplicates
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* Table Preview */}
           <div className="table-wrap" style={{ maxHeight: "360px", overflowY: "auto" }}>
@@ -349,7 +394,7 @@ export default function ImportData() {
                 <th>Entity Type</th>
                 <th>File Name</th>
                 <th>Total Rows</th>
-                <th>Imported</th>
+                <th>Breakdown (New / Updated / Skipped)</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -360,7 +405,13 @@ export default function ImportData() {
                   <td style={{ textTransform: "capitalize", fontWeight: "700" }}>{log.entity_type}</td>
                   <td>{log.file_name}</td>
                   <td>{log.total_rows}</td>
-                  <td><strong>{log.imported_rows}</strong></td>
+                  <td>
+                    <span style={{ color: "#0d6854", fontWeight: "600" }}>+{log.imported_rows} new</span>
+                    {" / "}
+                    <span style={{ color: "#c46624" }}>{log.updated_rows ?? 0} updated</span>
+                    {" / "}
+                    <span style={{ color: "#64748b" }}>{log.skipped_rows ?? 0} skipped</span>
+                  </td>
                   <td>
                     <span className={`badge ${log.status === "completed" ? "confirmed" : "cancelled"}`}>
                       {log.status}
