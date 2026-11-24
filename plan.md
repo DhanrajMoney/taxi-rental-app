@@ -428,7 +428,7 @@ Build a complete taxi rental operations dashboard for admins, staff, and drivers
 
 ## Technical Checklist
 
-- Current UI app version: `1.6.0`.
+- Current UI app version: `1.7.0`.
 - Whenever a feature is implemented, increment `APP_VERSION` in `frontend-react/src/App.jsx` and update this version here.
 - Add Laravel migrations, models, requests, policies, and API resources for each feature.
 - Add focused API tests for permissions and validation.
@@ -440,4 +440,4 @@ Build a complete taxi rental operations dashboard for admins, staff, and drivers
 - Keep date formatting consistent across all React tables with the shared formatter in `frontend-react/src/utils/formatDate.js`.
 - Run `php artisan test` and `npm run build` before releasing changes.
 - Database optimized: applied performance index migration (`2026_10_11_000001_optimize_performance_indexes.php`) and executed `OPTIMIZE TABLE` & `ANALYZE TABLE` across all MySQL tables.
-- Latest verification on 2026-10-19: all 71 Laravel tests pass with 371 assertions (100% pass rate), Playwright E2E tests configured, and the Vite production build succeeds cleanly in ~2.7s.
+- Latest verification on 2026-11-24: all 77 Laravel tests pass with 402 assertions (100% pass rate), Playwright E2E tests configured, and the Vite production build succeeds cleanly in ~2.6s.

@@ -3,7 +3,7 @@
 
 $ErrorActionPreference = "Stop"
 $RootPath = (Get-Item $PSScriptRoot).Parent.FullName
-$Version = "1.6.0"
+$Version = "1.7.0"
 $ReleaseDir = Join-Path $RootPath "release-dist"
 $ZipFile = Join-Path $RootPath "ridedesk-v$Version-release.zip"
 

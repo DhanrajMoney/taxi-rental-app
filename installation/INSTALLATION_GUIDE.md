@@ -1,7 +1,7 @@
 # RideDesk Taxi Rental Operations Software
 ## Production Installation & Deployment Guide
 
-> **Application Version:** `v1.6.0`  
+> **Application Version:** `v1.7.0`  
 > **Target Audience:** System Administrators, Hosting Providers, DevOps Engineers, and Fleet Operators.  
 > **Architecture:** Laravel 11 RESTful API + React 18 / Vite 5 SPA (Unified Single-Origin or Decoupled)  
 > **Related Documentation:**  
@@ -52,14 +52,14 @@ If you are preparing the distribution ZIP from your local development repository
   chmod +x ./installation/package-release.sh
   ./installation/package-release.sh
   ```
-This executes automated testing, builds the optimized React 18 production bundle, and packages `ridedesk-v1.6.0-release.zip` with frontend assets pre-compiled inside `backend-laravel/public/`.
+This executes automated testing, builds the optimized React 18 production bundle, and packages `ridedesk-v1.7.0-release.zip` with frontend assets pre-compiled inside `backend-laravel/public/`.
 
 ### Step 2: Clean the Target Directory
 > [!IMPORTANT]
 > If your domain or subdomain (e.g., `taxi.yourdomain.com`) previously hosted WordPress or default hosting placeholder files (such as `index.html`, `defaultwebpage.cgi`), **delete or back up and remove those files first**. Leftover WordPress files (`wp-admin`, `wp-includes`, `index.php`, `.htaccess`) will intercept web requests and prevent RideDesk from running.
 
 ### Step 3: Upload & Extract Files
-1. Upload `ridedesk-v1.6.0-release.zip` to your hosting server via cPanel File Manager, SFTP, or SCP.
+1. Upload `ridedesk-v1.7.0-release.zip` to your hosting server via cPanel File Manager, SFTP, or SCP.
 2. Extract the archive into your chosen project directory:
    - For Subdomains / VPS: `/home/username/ridedesk/` or `/var/www/ridedesk/`.
    - For primary cPanel domain using `public_html`: see [cPanel Deployment Guide](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/installation/CPANEL_DEPLOYMENT_GUIDE.md#option-b-primary-domain-public_html).

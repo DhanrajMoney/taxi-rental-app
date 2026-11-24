@@ -1,10 +1,10 @@
 # RideDesk Taxi Rental App
 
-> **Current Version:** `v1.6.0` | **Architecture:** Laravel 11 API + React 18 / Vite 5 SPA
+> **Current Version:** `v1.7.0` | **Architecture:** Laravel 11 API + React 18 / Vite 5 SPA
 
 RideDesk is an enterprise-grade taxi rental operations management system split into two independently runnable applications:
 
-- `backend-laravel/` - Laravel API, authentication, operational models, migrations, security validation, and feature tests (**71 tests, 371 assertions**).
+- `backend-laravel/` - Laravel API, authentication, operational models, migrations, security validation, and feature tests (**77 tests, 402 assertions**).
 - `frontend-react/` - Modern React/Vite command-center dashboard for managing fleet taxis, drivers, bookings, offices, user accounts, system configuration, data imports, maintenance, documents, trip expenses, and financial reports.
 
 ---
@@ -14,7 +14,7 @@ RideDesk is an enterprise-grade taxi rental operations management system split i
 - `backend-laravel/app/` contains API controllers, FormRequests, policies, and Eloquent models.
 - `backend-laravel/routes/api.php` defines the REST API endpoints.
 - `backend-laravel/database/migrations/` contains database migrations, including vehicle photography, ownership, company GST registration, and performance indexes.
-- `backend-laravel/tests/` contains backend unit and feature tests (**71 tests, 371 assertions**).
+- `backend-laravel/tests/` contains backend unit and feature tests (**77 tests, 402 assertions**).
 - `frontend-react/src/pages/` contains the dashboard workspace pages (`DashboardOverview.jsx`, `Bookings.jsx`, `Taxis.jsx`, `Drivers.jsx`, `Offices.jsx`, `Users.jsx`, `Settings.jsx`, `Maintenance.jsx`, `Reports.jsx`, `ImportData.jsx`).
 - `frontend-react/src/components/` contains reusable UI modals, drawers, and form components (`TaxiForm.jsx`, `DriverForm.jsx`, `UserForm.jsx`, `ExpenseModal.jsx`, `BookingExpensesTab.jsx`, `DocumentsPanel.jsx`, `ProfileModal.jsx`, `CancelBookingModal.jsx`, `NotificationDropdown.jsx`).
 - `frontend-react/src/api/` contains the Axios API client layer with interceptors.
@@ -166,7 +166,7 @@ cd backend-laravel
 php vendor/bin/phpunit -c phpunit.xml
 ```
 
-*Result: **71 tests passing**, 371 assertions (100% pass rate).*
+*Result: **77 tests passing**, 402 assertions (100% pass rate).*
 
 Test suites cover:
 - Authentication & Profile Management (`AuthApiTest.php`, `ProfileApiTest.php`)

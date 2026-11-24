@@ -1,6 +1,6 @@
 # RideDesk — Complete Web Application Feature Documentation
 
-> **Application Version:** `v1.6.0`  
+> **Application Version:** `v1.7.0`  
 > **Tech Stack:** Laravel 11 RESTful API + React 18 / Vite 5 SPA  
 > **Target Audience:** Fleet Owners, Fleet Operations Managers, Dispatch Staff, and Drivers
 
@@ -395,7 +395,7 @@ Production-grade engineering optimizations implemented across the stack:
 - **Enhanced Multi-Field Search:** Search builder matches customer name, phone, pickup, drop-off, numeric Booking IDs, and vehicle plate numbers.
 - **DRY Utility Centralization:** Consolidated currency, date/time, clipboard, and avatar helpers into [`format.js`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/utils/format.js), reducing bundle sizes across all page chunks.
 - **Modular Stylesheet Architecture:** Separated modal form styles into [`taxi-form.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxi-form.css), reducing [`taxis.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/taxis.css) from 1,878 lines down to 965 lines (~50% reduction). Condensed and refactored [`drivers.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/drivers.css), [`offices.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/offices.css), and created scoped [`users.css`](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/frontend-react/src/styles/users.css).
-- **Comprehensive Automated Test Suite:** **71 PHPUnit feature tests passing** with 371 assertions (100% pass rate) covering authentication, user management, office management, fleet asset records, vehicle photography & ownership, driver compliance, rental bookings, operational trip expenses & P&L, system settings & GST, and data imports.
+- **Comprehensive Automated Test Suite:** **77 PHPUnit feature tests passing** with 402 assertions (100% pass rate) covering authentication, user management, office management, fleet asset records, vehicle photography & ownership, driver compliance, rental bookings, operational trip expenses & P&L, system settings & GST, and data imports.
 - **Optimized Frontend Production Bundling:** Vite 5 compiles clean production asset chunks into `frontend-react/dist/` in ~2.7s with zero linting or compilation errors.
 
 ---

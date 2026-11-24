@@ -1,6 +1,6 @@
 # RideDesk - cPanel Shared Hosting Deployment Guide
 
-> **Application Version:** `v1.6.0`  
+> **Application Version:** `v1.7.0`  
 > **Target Audience:** System Administrators, cPanel Hosting Users, and Technical Buyers.  
 > **Related Documentation:**  
 > - [Complete Installation & Deployment Guide](file:///c:/xampp/htdocs/RideDesk_TaxiDriver_Module/taxi-rental-app/installation/INSTALLATION_GUIDE.md)  
@@ -41,7 +41,7 @@ If you have the source repository on your local computer, build the production r
   ./installation/package-release.sh
   ```
 
-This packages `ridedesk-v1.6.0-release.zip`, which contains the pre-compiled frontend assets already published inside `backend-laravel/public/`.
+This packages `ridedesk-v1.7.0-release.zip`, which contains the pre-compiled frontend assets already published inside `backend-laravel/public/`.
 
 ---
 
@@ -63,7 +63,7 @@ Modern cPanel allows you to specify any folder as the **Document Root** for a su
 3. Select and delete any leftover WordPress or default hosting files (`index.html`, `defaultwebpage.cgi`, `wp-*`).
 
 #### 2. Upload and Extract
-1. In cPanel File Manager, upload `ridedesk-v1.6.0-release.zip` into your user home directory `/home/username/` (or into your chosen subdomain directory).
+1. In cPanel File Manager, upload `ridedesk-v1.7.0-release.zip` into your user home directory `/home/username/` (or into your chosen subdomain directory).
 2. Right-click the uploaded ZIP file and click **Extract**.
 3. You will have a folder structure such as `/home/username/ridedesk/backend-laravel/`.
 
@@ -84,7 +84,7 @@ If deploying to your cPanel account's primary domain where the web root is locke
 
 #### 1. Place Core Application Files Outside `public_html` (Secure Architecture)
 1. In cPanel **File Manager**, create a folder named `ridedesk_core` directly in `/home/username/` (at the same level as `public_html`, **NOT** inside it).
-2. Upload and extract `ridedesk-v1.6.0-release.zip` inside `/home/username/ridedesk_core/`.
+2. Upload and extract `ridedesk-v1.7.0-release.zip` inside `/home/username/ridedesk_core/`.
 3. Move all files and folders from `/home/username/ridedesk_core/backend-laravel/public/` directly into `/home/username/public_html/`.
 
 #### 2. Update `public_html/index.php`

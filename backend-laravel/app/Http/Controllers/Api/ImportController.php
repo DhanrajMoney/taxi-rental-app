@@ -222,26 +222,10 @@ class ImportController extends Controller
                     }
 
                     // Normalize enum values to lowercase to match database definitions
-                    if (! empty($mapped['vehicle_type'])) {
-                        $vType = strtolower($mapped['vehicle_type']);
-                        $mapped['vehicle_type'] = in_array($vType, ['sedan', 'suv', 'hatchback', 'mini_bus']) ? $vType : 'sedan';
-                    } else {
-                        $mapped['vehicle_type'] = 'sedan';
-                    }
-
-                    if (! empty($mapped['fuel_type'])) {
-                        $fType = strtolower($mapped['fuel_type']);
-                        $mapped['fuel_type'] = in_array($fType, ['petrol', 'diesel', 'cng', 'ev']) ? $fType : 'petrol';
-                    } else {
-                        $mapped['fuel_type'] = 'petrol';
-                    }
-
-                    if (! empty($mapped['pricing_type'])) {
-                        $pType = strtolower($mapped['pricing_type']);
-                        $mapped['pricing_type'] = in_array($pType, ['daily', 'per_km']) ? $pType : 'daily';
-                    } else {
-                        $mapped['pricing_type'] = 'daily';
-                    }
+                    $mapped['vehicle_type'] = $this->normalizeTaxiVehicleType($mapped['vehicle_type'] ?? null);
+                    $mapped['fuel_type'] = $this->normalizeTaxiFuelType($mapped['fuel_type'] ?? null);
+                    $mapped['pricing_type'] = $this->normalizePricingType($mapped['pricing_type'] ?? null);
+                    $mapped['status'] = $this->normalizeTaxiStatus($mapped['status'] ?? null);
 
                     if (! empty($mapped['rate_amount']) && ! is_numeric($mapped['rate_amount'])) {
                         $errors[] = 'Rate amount must be a numeric value.';
@@ -272,6 +256,8 @@ class ImportController extends Controller
                     } elseif (strtotime($mapped['license_expiry']) === false) {
                         $errors[] = 'Invalid license expiry date format.';
                     }
+
+                    $mapped['status'] = $this->normalizeDriverStatus($mapped['status'] ?? null);
 
                     if (! empty($mapped['phone'])) {
                         $driverPhone = $mapped['phone'];
@@ -482,22 +468,24 @@ class ImportController extends Controller
                             break;
                         }
 
-                        $vType = strtolower($data['vehicle_type'] ?? 'sedan');
-                        $fType = strtolower($data['fuel_type'] ?? 'petrol');
-                        $pType = strtolower($data['pricing_type'] ?? 'daily');
+                        $vType = $this->normalizeTaxiVehicleType($data['vehicle_type'] ?? null);
+                        $fType = $this->normalizeTaxiFuelType($data['fuel_type'] ?? null);
+                        $pType = $this->normalizePricingType($data['pricing_type'] ?? null);
+                        $status = $this->normalizeTaxiStatus($data['status'] ?? null);
+                        $rate = ! empty($data['rate_amount']) && is_numeric($data['rate_amount']) ? (float) $data['rate_amount'] : 1500;
 
                         $taxi = Taxi::updateOrCreate(
                             ['reg_number' => $data['reg_number']],
                             [
-                                'vehicle_type' => in_array($vType, ['sedan', 'suv', 'hatchback', 'mini_bus']) ? $vType : 'sedan',
+                                'vehicle_type' => $vType,
                                 'make_model' => $data['make_model'],
-                                'year_of_manufacture' => $data['year_of_manufacture'] ?? date('Y'),
-                                'seating_capacity' => $data['seating_capacity'] ?? 4,
-                                'fuel_type' => in_array($fType, ['petrol', 'diesel', 'cng', 'ev']) ? $fType : 'petrol',
-                                'pricing_type' => in_array($pType, ['daily', 'per_km']) ? $pType : 'daily',
-                                'rate_amount' => $data['rate_amount'] ?? 1500,
-                                'daily_rate' => $data['rate_amount'] ?? 1500,
-                                'status' => strtolower($data['status'] ?? 'available'),
+                                'year_of_manufacture' => ! empty($data['year_of_manufacture']) && is_numeric($data['year_of_manufacture']) ? (int) $data['year_of_manufacture'] : date('Y'),
+                                'seating_capacity' => ! empty($data['seating_capacity']) && is_numeric($data['seating_capacity']) ? (int) $data['seating_capacity'] : 4,
+                                'fuel_type' => $fType,
+                                'pricing_type' => $pType,
+                                'rate_amount' => $rate,
+                                'daily_rate' => $rate,
+                                'status' => $status,
                                 'office_id' => $user?->office_id ?? $existing?->office_id,
                             ]
                         );
@@ -525,7 +513,7 @@ class ImportController extends Controller
                                 'gender' => $data['gender'] ?? null,
                                 'license_expiry' => $data['license_expiry'],
                                 'joining_date' => $data['joining_date'] ?? date('Y-m-d'),
-                                'status' => strtolower($data['status'] ?? 'active'),
+                                'status' => $this->normalizeDriverStatus($data['status'] ?? null),
                                 'office_id' => $user?->office_id ?? $existing?->office_id,
                             ]
                         );
@@ -546,10 +534,7 @@ class ImportController extends Controller
 
                         $pickupLoc = ! empty($data['pickup_location']) ? $data['pickup_location'] : 'HQ';
                         $dropLoc = ! empty($data['drop_location']) ? $data['drop_location'] : $pickupLoc;
-                        $status = strtolower($data['status'] ?? 'confirmed');
-                        if (! in_array($status, ['pending', 'confirmed', 'active', 'completed', 'cancelled'])) {
-                            $status = 'confirmed';
-                        }
+                        $status = $this->normalizeBookingStatus($data['status'] ?? null, $data['return_date'] ?? null);
 
                         $finalFare = ! empty($data['final_fare']) && is_numeric($data['final_fare']) ? (float) $data['final_fare'] : null;
                         $estimatedFare = ! empty($data['estimated_fare']) && is_numeric($data['estimated_fare'])
@@ -628,5 +613,97 @@ class ImportController extends Controller
         return response()->json(
             ImportLog::with('user')->orderByDesc('created_at')->limit(50)->get()
         );
+    }
+
+    protected function normalizeTaxiStatus(?string $status): string
+    {
+        $s = strtolower(trim((string) $status));
+        $s = str_replace(['-', '_'], ' ', $s);
+
+        return match ($s) {
+            'available', 'ready', 'free', 'active', 'yes', 'on' => 'available',
+            'on rent', 'rented', 'busy', 'booked', 'in trip', 'on trip', 'hired' => 'on_rent',
+            'maintenance', 'repair', 'servicing', 'service', 'in repair', 'garage', 'repairing' => 'maintenance',
+            'inactive', 'not available', 'unavailable', 'disabled', 'retired', 'out of service', 'no', 'off', 'idle' => 'inactive',
+            default => in_array($s, ['available', 'on_rent', 'maintenance', 'inactive']) ? $s : 'available',
+        };
+    }
+
+    protected function normalizeTaxiVehicleType(?string $type): string
+    {
+        $t = strtolower(trim((string) $type));
+        $t = str_replace(['-', '_'], ' ', $t);
+
+        return match ($t) {
+            'sedan' => 'sedan',
+            'suv', 'muv' => 'suv',
+            'hatchback', 'hatch' => 'hatchback',
+            'mini bus', 'minibus', 'bus', 'van', 'tempo', 'traveller' => 'mini_bus',
+            default => in_array($t, ['sedan', 'suv', 'hatchback', 'mini_bus']) ? $t : 'sedan',
+        };
+    }
+
+    protected function normalizeTaxiFuelType(?string $fuel): string
+    {
+        $f = strtolower(trim((string) $fuel));
+        $f = str_replace(['-', '_', ' '], '', $f);
+
+        return match ($f) {
+            'petrol', 'gasoline', 'gas' => 'petrol',
+            'diesel' => 'diesel',
+            'cng', 'cng+petrol', 'petrol+cng' => 'cng',
+            'ev', 'electric', 'battery' => 'ev',
+            default => in_array($f, ['petrol', 'diesel', 'cng', 'ev']) ? $f : 'petrol',
+        };
+    }
+
+    protected function normalizePricingType(?string $pricing): string
+    {
+        $p = strtolower(trim((string) $pricing));
+        $p = str_replace(['-', '_', ' '], '', $p);
+
+        return match ($p) {
+            'perkm', 'km', 'kilometer', 'perkilometer' => 'per_km',
+            default => 'daily',
+        };
+    }
+
+    protected function normalizeDriverStatus(?string $status): string
+    {
+        $s = strtolower(trim((string) $status));
+        $s = str_replace(['-', '_'], ' ', $s);
+
+        return match ($s) {
+            'active', 'working', 'available', 'ready', 'yes', 'on' => 'active',
+            'on trip', 'trip', 'busy', 'driving', 'booked', 'hired' => 'on_trip',
+            'on leave', 'leave', 'vacation', 'holiday', 'sick', 'off' => 'on_leave',
+            'inactive', 'not active', 'not available', 'unavailable', 'disabled', 'retired', 'resigned', 'terminated', 'left', 'no' => 'inactive',
+            default => in_array($s, ['active', 'on_trip', 'on_leave', 'inactive']) ? $s : 'active',
+        };
+    }
+
+    protected function normalizeBookingStatus(?string $status, ?string $returnDate = null): string
+    {
+        $s = strtolower(trim((string) $status));
+        $s = str_replace(['-', '_'], ' ', $s);
+
+        $mapped = match ($s) {
+            'completed', 'complete', 'done', 'finished', 'closed' => 'completed',
+            'cancelled', 'canceled', 'cancel', 'rejected', 'aborted' => 'cancelled',
+            'active', 'ongoing', 'in progress', 'started' => 'active',
+            'confirmed', 'confirm', 'approved', 'booked' => 'confirmed',
+            'pending', 'waiting', 'new', 'hold' => 'pending',
+            default => in_array($s, ['pending', 'confirmed', 'active', 'completed', 'cancelled']) ? $s : null,
+        };
+
+        if ($mapped) {
+            return $mapped;
+        }
+
+        if (! empty($returnDate) && strtotime($returnDate) !== false && strtotime($returnDate) < time()) {
+            return 'completed';
+        }
+
+        return 'confirmed';
     }
 }
