@@ -53,7 +53,6 @@ New-Item -ItemType Directory -Path $ReleaseDir | Out-Null
 $StagingBackend = Join-Path $ReleaseDir "backend-laravel"
 New-Item -ItemType Directory -Path $StagingBackend | Out-Null
 
-$ExcludeBackend = @(".git", ".github", ".env", "tests", "storage\logs\*", "storage\framework\cache\data\*")
 Get-ChildItem -Path (Join-Path $RootPath "backend-laravel") | Where-Object {
     $_.Name -notin @(".git", ".github", "node_modules", ".env")
 } | ForEach-Object {
