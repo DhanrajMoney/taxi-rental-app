@@ -114,3 +114,34 @@ export function getAvatarColor(name = "") {
   return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
 }
 
+/**
+ * Export an array of flat objects to a UTF-8 CSV file download
+ */
+export function exportCsv(filename, rows) {
+  if (!rows || !rows.length) return;
+
+  const headers = Object.keys(rows[0]);
+  const csv = [
+    headers.map((h) => `"${String(h).replace(/"/g, '""')}"`).join(","),
+    ...rows.map((row) =>
+      headers
+        .map((header) => {
+          const value = row[header] ?? "";
+          const safeValue = String(value).replace(/"/g, '""');
+          return `"${safeValue}"`;
+        })
+        .join(","),
+    ),
+  ].join("\n");
+
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+}
+

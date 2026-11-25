@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { BookingAPI, DriverAPI, OfficeAPI, TaxiAPI } from "../api/client.js";
 import {
   formatDate,
@@ -7,6 +7,7 @@ import {
   copyToClipboard,
   getInitials,
   getAvatarColor,
+  exportCsv,
 } from "../utils/format.js";
 import BookingForm from "../components/BookingForm.jsx";
 import CancelBookingModal from "../components/CancelBookingModal.jsx";
@@ -35,6 +36,17 @@ const DATE_PRESETS = [
   { value: "past_7_days", label: "⏪ Past 7 Days" },
   { value: "past_30_days", label: "⏪ Past 30 Days" },
   { value: "custom", label: "🎯 Custom Range…" },
+];
+
+const SORT_OPTIONS = [
+  { value: "newest", label: "🕒 Newest First" },
+  { value: "id_asc", label: "🔢 Ref # (Oldest)" },
+  { value: "pickup_asc", label: "📅 Pickup (Earliest)" },
+  { value: "pickup_desc", label: "📅 Pickup (Latest)" },
+  { value: "fare_desc", label: "💰 Fare (High → Low)" },
+  { value: "fare_asc", label: "💰 Fare (Low → High)" },
+  { value: "customer_asc", label: "👤 Customer (A → Z)" },
+  { value: "status_asc", label: "🏷️ Status (A → Z)" },
 ];
 
 function calculateTripDays(start, end) {
@@ -100,6 +112,14 @@ export default function Bookings({ canManage }) {
   const [customStart, setCustomStart]             = useState("");
   const [customEnd, setCustomEnd]                 = useState("");
   const [officeFilter, setOfficeFilter]           = useState("");
+  const [sortBy, setSortBy]                       = useState("newest");
+  const [viewMode, setViewMode]                   = useState(() => {
+    try {
+      return localStorage.getItem("ridedesk_bookings_view") || "cards";
+    } catch {
+      return "cards";
+    }
+  });
   const [loading, setLoading]                     = useState(false);
   const [error, setError]                         = useState("");
 
@@ -294,6 +314,77 @@ export default function Bookings({ canManage }) {
     setCustomEnd("");
   }
 
+  function handleViewModeChange(mode) {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("ridedesk_bookings_view", mode);
+    } catch {
+      // Ignore storage errors
+    }
+  }
+
+  function toggleColumnSort(ascKey, descKey) {
+    setSortBy((current) => (current === ascKey ? descKey : ascKey));
+  }
+
+  const sortedBookings = useMemo(() => {
+    const list = [...bookings];
+    list.sort((a, b) => {
+      switch (sortBy) {
+        case "id_asc":
+          return (a.id || 0) - (b.id || 0);
+        case "pickup_asc":
+          return String(a.pickup_date || "").localeCompare(String(b.pickup_date || ""));
+        case "pickup_desc":
+          return String(b.pickup_date || "").localeCompare(String(a.pickup_date || ""));
+        case "fare_desc": {
+          const fa = Number(a.final_fare ?? a.estimated_fare ?? -1);
+          const fb = Number(b.final_fare ?? b.estimated_fare ?? -1);
+          return fb - fa;
+        }
+        case "fare_asc": {
+          const fa = Number(a.final_fare ?? a.estimated_fare ?? Number.MAX_SAFE_INTEGER);
+          const fb = Number(b.final_fare ?? b.estimated_fare ?? Number.MAX_SAFE_INTEGER);
+          return fa - fb;
+        }
+        case "customer_asc":
+          return String(a.customer_name || "").localeCompare(String(b.customer_name || ""));
+        case "status_asc":
+          return String(a.status || "").localeCompare(String(b.status || ""));
+        case "newest":
+        default:
+          return (b.id || 0) - (a.id || 0);
+      }
+    });
+    return list;
+  }, [bookings, sortBy]);
+
+  function handleExportCsv() {
+    if (!sortedBookings.length) return;
+    const rows = sortedBookings.map((b) => ({
+      "Booking Ref": `#BK-${String(b.id).padStart(5, "0")}`,
+      Status: (b.status || "pending").toUpperCase(),
+      "Customer Name": b.customer_name || "",
+      "Customer Phone": b.customer_phone || "",
+      "Pickup Date": formatDate(b.pickup_date),
+      "Return Date": formatDate(b.return_date),
+      "Pickup Location": b.pickup_location || "",
+      "Drop Location": b.drop_location || "",
+      "Vehicle Reg": b.taxi?.reg_number || "Unassigned",
+      "Vehicle Model": b.taxi?.make_model || b.taxi?.model || "",
+      "Driver Name": b.driver?.name || "Unassigned",
+      "Driver Phone": b.driver?.phone || "",
+      Branch: b.office?.name || "Main Office",
+      "Pricing Type": b.pricing_type === "per_km" ? "Per Km" : "Daily",
+      "Estimated Fare": b.estimated_fare ?? "",
+      "Final Fare": b.final_fare ?? "",
+      "Total Expenses": b.total_expenses ?? 0,
+      "Net Profit": b.net_profit ?? "",
+    }));
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    exportCsv(`ridedesk-bookings-${dateStamp}.csv`, rows);
+  }
+
   const panelBooking = detailData || selectedBooking;
   const statusInfo   = panelBooking ? (STATUS_META[panelBooking.status?.toLowerCase()] || STATUS_META.pending) : {};
   const bookingIdStr = panelBooking ? `#BK-${String(panelBooking.id).padStart(5, "0")}` : "";
@@ -373,6 +464,65 @@ export default function Bookings({ canManage }) {
               ))}
             </select>
           )}
+
+          {/* Sort Dropdown */}
+          <select
+            className="bk-filter-select bk-sort-select"
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value)}
+            aria-label="Sort bookings"
+            title="Sort bookings"
+          >
+            {SORT_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+
+          {/* View Mode Toggle: Cards vs Table */}
+          <div className="bk-view-toggle" role="group" aria-label="View mode">
+            <button
+              type="button"
+              className={`bk-view-btn${viewMode === "cards" ? " active" : ""}`}
+              onClick={() => handleViewModeChange("cards")}
+              aria-pressed={viewMode === "cards"}
+              title="Card View"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
+                <rect x="3" y="4" width="18" height="6" rx="2"/>
+                <rect x="3" y="14" width="18" height="6" rx="2"/>
+              </svg>
+              <span>Cards</span>
+            </button>
+            <button
+              type="button"
+              className={`bk-view-btn${viewMode === "table" ? " active" : ""}`}
+              onClick={() => handleViewModeChange("table")}
+              aria-pressed={viewMode === "table"}
+              title="Table View"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M3 9h18M3 15h18M9 9v12"/>
+              </svg>
+              <span>Table</span>
+            </button>
+          </div>
+
+          {/* Export CSV */}
+          <button
+            type="button"
+            className="bk-btn-export"
+            onClick={handleExportCsv}
+            disabled={loading || sortedBookings.length === 0}
+            title="Export filtered bookings to CSV"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Export CSV</span>
+          </button>
 
           {canManage && (
             <button className="bk-btn-new" onClick={() => setEditing("new")}>
@@ -517,10 +667,10 @@ export default function Bookings({ canManage }) {
           </div>
         )}
 
-        {/* Bookings list */}
+        {/* Bookings list / table */}
         {!loading && (
-          <div className="bk-list">
-            {bookings.length === 0 ? (
+          sortedBookings.length === 0 ? (
+            <div className="bk-list">
               <div className="bk-empty">
                 <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" width="56" height="56">
                   <rect x="8" y="12" width="48" height="40" rx="6" fill="#e8f0f3"/>
@@ -535,8 +685,201 @@ export default function Bookings({ canManage }) {
                   </button>
                 )}
               </div>
-            ) : (
-              bookings.map(booking => {
+            </div>
+          ) : viewMode === "table" ? (
+            <div className="bk-table-wrap">
+              <table className="bk-table" aria-label="Bookings table">
+                <thead>
+                  <tr>
+                    <th
+                      className="bk-th-sortable"
+                      onClick={() => toggleColumnSort("id_asc", "newest")}
+                      title="Sort by Booking Ref"
+                    >
+                      <span>Ref</span>
+                      <span className="bk-sort-indicator">
+                        {sortBy === "id_asc" ? "↑" : sortBy === "newest" ? "↓" : "↕"}
+                      </span>
+                    </th>
+                    <th
+                      className="bk-th-sortable"
+                      onClick={() => toggleColumnSort("customer_asc", "newest")}
+                      title="Sort by Customer"
+                    >
+                      <span>Customer</span>
+                      <span className="bk-sort-indicator">
+                        {sortBy === "customer_asc" ? "↑" : "↕"}
+                      </span>
+                    </th>
+                    <th
+                      className="bk-th-sortable"
+                      onClick={() => toggleColumnSort("pickup_asc", "pickup_desc")}
+                      title="Sort by Pickup Date"
+                    >
+                      <span>Schedule</span>
+                      <span className="bk-sort-indicator">
+                        {sortBy === "pickup_asc" ? "↑" : sortBy === "pickup_desc" ? "↓" : "↕"}
+                      </span>
+                    </th>
+                    <th>Route</th>
+                    <th>Fleet &amp; Driver</th>
+                    <th
+                      className="bk-th-sortable"
+                      onClick={() => toggleColumnSort("status_asc", "newest")}
+                      title="Sort by Status"
+                    >
+                      <span>Status</span>
+                      <span className="bk-sort-indicator">
+                        {sortBy === "status_asc" ? "↑" : "↕"}
+                      </span>
+                    </th>
+                    <th
+                      className="bk-th-sortable bk-th-right"
+                      onClick={() => toggleColumnSort("fare_desc", "fare_asc")}
+                      title="Sort by Fare"
+                    >
+                      <span>Fare</span>
+                      <span className="bk-sort-indicator">
+                        {sortBy === "fare_desc" ? "↓" : sortBy === "fare_asc" ? "↑" : "↕"}
+                      </span>
+                    </th>
+                    <th className="bk-th-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedBookings.map((booking) => {
+                    const sm = STATUS_META[booking.status?.toLowerCase()] || STATUS_META.pending;
+                    const isSelected = selectedBooking?.id === booking.id;
+                    const fareVal = booking.final_fare ?? booking.estimated_fare;
+                    return (
+                      <tr
+                        key={booking.id}
+                        className={`bk-tr${isSelected ? " bk-tr-selected" : ""}`}
+                        onClick={() => openDetail(booking)}
+                        tabIndex={0}
+                        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openDetail(booking)}
+                      >
+                        <td className="bk-td-ref">
+                          <span className="bk-tbl-id">#{String(booking.id).padStart(5, "0")}</span>
+                          {booking.office?.name && (
+                            <span className="bk-tbl-sub">{booking.office.name}</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="bk-tbl-customer">
+                            <span className="bk-tbl-avatar" style={{ background: sm.bg, color: sm.color }}>
+                              {(booking.customer_name || "?").charAt(0).toUpperCase()}
+                            </span>
+                            <div className="bk-tbl-cust-meta">
+                              <span className="bk-tbl-name">{booking.customer_name}</span>
+                              {booking.customer_phone && (
+                                <span className="bk-tbl-sub">{booking.customer_phone}</span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="bk-tbl-dates">
+                            <span>{formatDate(booking.pickup_date)}</span>
+                            {booking.return_date && (
+                              <span className="bk-tbl-sub">→ {formatDate(booking.return_date)}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="bk-td-route">
+                          <div className="bk-tbl-route-text" title={`${booking.pickup_location || "—"} → ${booking.drop_location || "—"}`}>
+                            <span className="bk-tbl-route-from">{booking.pickup_location || "—"}</span>
+                            {booking.drop_location && (
+                              <span className="bk-tbl-sub">→ {booking.drop_location}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <div className="bk-tbl-fleet">
+                            {booking.taxi?.reg_number ? (
+                              <span className="bk-card-taxi">🚕 {booking.taxi.reg_number}</span>
+                            ) : (
+                              <span className="bk-tbl-unassigned">No taxi</span>
+                            )}
+                            {booking.driver?.name && (
+                              <span className="bk-tbl-sub">👤 {booking.driver.name}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <span
+                            className="bk-badge"
+                            style={{ background: sm.bg, color: sm.color, borderColor: sm.color + "40" }}
+                          >
+                            {sm.icon} {sm.label}
+                          </span>
+                        </td>
+                        <td className="bk-td-right">
+                          <div className="bk-tbl-fare-wrap">
+                            {fareVal != null ? (
+                              <span className="bk-card-fare">
+                                {formatCurrency(fareVal)}
+                                {booking.final_fare == null && <em> est.</em>}
+                              </span>
+                            ) : (
+                              <span className="bk-tbl-unassigned">—</span>
+                            )}
+                            {booking.total_expenses > 0 && (
+                              <button
+                                type="button"
+                                className="bk-card-expense-pill"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDetail(booking, "expenses");
+                                }}
+                                title="View trip expenses"
+                              >
+                                💸 {formatCurrency(booking.total_expenses)}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="bk-td-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="bk-table-actions">
+                            <button
+                              type="button"
+                              className="bk-tbl-action-btn"
+                              onClick={() => openDetail(booking)}
+                              title="View booking details"
+                            >
+                              👁️
+                            </button>
+                            {canManage && (
+                              <button
+                                type="button"
+                                className="bk-tbl-action-btn"
+                                onClick={() => setEditing(booking)}
+                                title="Edit booking"
+                              >
+                                ✏️
+                              </button>
+                            )}
+                            {canManage && booking.status !== "cancelled" && (
+                              <button
+                                type="button"
+                                className="bk-tbl-action-btn bk-tbl-action-danger"
+                                onClick={() => handleInitiateCancel(booking)}
+                                title="Cancel booking"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="bk-list">
+              {sortedBookings.map(booking => {
                 const sm = STATUS_META[booking.status?.toLowerCase()] || STATUS_META.pending;
                 const isSelected = selectedBooking?.id === booking.id;
                 return (
@@ -608,9 +951,9 @@ export default function Bookings({ canManage }) {
                     </svg>
                   </div>
                 );
-              })
-            )}
-          </div>
+              })}
+            </div>
+          )
         )}
       </div>
 
